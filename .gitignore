@@ -1,0 +1,12 @@
+/build
+/.externalNativeBuild
+/app.iml
+/app-release.apk
+/src/main/libs
+/src/main/obj
+/src/androidTest
+/src/test
+/src/main/jni/z
+/src/main/jni/iconv
+/src/main/jni/png
+/src/main/jni/turbojpeg

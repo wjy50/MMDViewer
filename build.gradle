@@ -1,0 +1,58 @@
+apply plugin: 'com.android.application'
+
+android {
+    signingConfigs {
+        wjy50 {
+            keyAlias 'wjy50key'
+            keyPassword 'wjywjy50279606'
+            storeFile file('/home/wjy50/Android/projects/wjy50.keystore')
+            storePassword 'wjywjy50279606'
+        }
+    }
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
+    defaultConfig {
+        applicationId "com.wjy50.app.mmdviewer"
+        minSdkVersion 18
+        targetSdkVersion 27
+        versionCode 1
+        versionName "1.0"
+        ndk {
+            abiFilters /*"armeabi", */ "armeabi-v7a", "arm64-v8a"/*, "x86", "x86_64"*/
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags '-std=c++11'
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            zipAlignEnabled true
+            signingConfig signingConfigs.wjy50
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
+        }
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs=['libs']
+        }
+    }
+
+    productFlavors {
+    }
+    externalNativeBuild {
+        cmake {
+            path 'CMakeLists.txt'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar','*.so.*'], dir: 'libs')
+}
