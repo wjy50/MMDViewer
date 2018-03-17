@@ -9,7 +9,7 @@
 #include "../../quaternion/quaternion.h"
 #include "../../utils/mathutils.h"
 
-/*implement of PMXBone*/
+/*implementation of PMXBone*/
 
 PMXBone::PMXBone() {
     name=nameE=0;
@@ -235,7 +235,7 @@ PMXBone::~PMXBone() {
 
 /*end of PMXBone*/
 
-/*implement of PMXBoneIKChainNode*/
+/*implementation of PMXBoneIKChainNode*/
 
 PMXBoneIKChainNode::PMXBoneIKChainNode() {
     low=high=0;
@@ -285,7 +285,7 @@ float* PMXBoneIKChainNode::getIKMat() {
 
 /*end of PMXBoneIKChainNode*/
 
-/*implement of PMXBoneIK*/
+/*implementation of PMXBoneIK*/
 
 PMXBoneIK::PMXBoneIK(FILE *file, size_t boneSize) {
     target=0;
