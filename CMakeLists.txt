@@ -30,7 +30,9 @@ add_library( # Sets the name of the library.
              src/main/jni/matrix/matrix.c
              src/main/jni/mmd/pmxreader.cpp
              src/main/jni/utils/mstring.cpp
+             src/main/jni/utils/mathutils.c
              src/main/jni/vector/vector.c
+             src/main/jni/quaternion/quaternion.c
 )
 
 # Searches for a specified prebuilt library and stores the path as a

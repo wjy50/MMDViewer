@@ -129,25 +129,39 @@ public:
 
 class PMXBoneIKChainNode{
 private:
-    int ikBone;
-    bool isLimited;
+    unsigned int ikBone;
+    bool limited;
     float * low;
     float * high;
+    float * ikMat;
 public:
     PMXBoneIKChainNode();
     void read(FILE* file,PMXInfo* info);
+
+    unsigned int getBoneIndex();
+    bool isLimited();
+    const float * getLowLimit();
+    const float * getHighLimit();
+
+    float * getIKMat();
+
     ~PMXBoneIKChainNode();
 };
 
 class PMXBoneIK{
 private:
-    int target;
+    unsigned int target;
     int loopCount;
     float loopAngleLimit;
     int ikChainLength;
     PMXBoneIKChainNode* ikChain;
 public:
     PMXBoneIK(FILE* file,PMXInfo* info);
+    unsigned int getTarget();
+    int getIkChainLength();
+    PMXBoneIKChainNode* getIkChainNodeAt(int index);
+    float getLoopAngleLimit();
+    int getLoopCount();
     ~PMXBoneIK();
 };
 
@@ -155,12 +169,12 @@ class PMXBone{
 private:
     MString * name,*nameE;
     float * position;
-    int parent;
+    unsigned int parent;
     int level;
     unsigned short flag;
     int child;
     float * offset;
-    int appendParent;
+    unsigned int appendParent;
     float appendRatio;
     float * axis;
     float * localX;
@@ -172,12 +186,44 @@ private:
     unsigned int actualIndex;
 
     float * localMat;
+    float * localMatWithAppend;
 
-    friend class PMXReader;
+    float * ikMat;
+
+    int childCount;
+    int childrenCapacity;
+    unsigned int * children;
+
+    bool appendFromSelf;
 public:
     PMXBone();
     void read(FILE* file,PMXInfo* info, float* localMat, float* position);
     void normalizeLocal();
+
+    PMXBoneIK* getBoneIK();
+    void setActualIndex(unsigned int actualIndex);
+    unsigned int getActualIndex();
+    float * getPosition();
+    unsigned int getParent();
+    unsigned int getAppendParent();
+    float getAppendRatio();
+    int getChildCount();
+    const float * getLocalMat();
+    void setIKMat(float * ikMat);
+    void addChild(unsigned int child);
+    unsigned int getChildAt(int index);
+    void setAppendFromSelf(bool appendFromSelf);
+    bool isAppendFromSelf();
+    const float * getCurrentMat();
+    float * getLocalMatWithAppend();
+    float * getIKMat();
+
+    const char * getName();
+
+    void rotateBy(float a, float x, float y, float z);
+    void translationBy(float x, float y, float z);
+    void resetLocal();
+
     ~PMXBone();
 };
 
@@ -308,8 +354,10 @@ private:
     char currentPassId;
     char*boneStateIds;
     void calculateIK();
-    void calculateBone(int index);
+    void calculateBone(unsigned int index);
+    void updateIKMatrix(unsigned int index);
     float matrixTmp[16];
+    float vecTmp[4];
     bool newBoneTransform;
 
     GLint maxVertexShaderVecCount;
@@ -319,7 +367,11 @@ private:
     GLint mShadowPositionHandle,mShadowBonesHandle,mShadowWeightHandle;
     GLint mShadowSunMatHandle,mShadowBoneMatsHandle;
 
+    unsigned int ikCount;
+    unsigned int * ikIndices;
+
     void updateBoneMats();
+    void invalidateChildren(unsigned int index);
 public:
     PMXReader(const char* filePath);
     void genVertexBuffers();

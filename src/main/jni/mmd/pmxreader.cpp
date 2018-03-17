@@ -8,10 +8,14 @@
 #include "../iconv/iconv.h"
 #include "../gl/shaderloader.h"
 #include "../vector/vector.h"
+#include "../quaternion/quaternion.h"
+#include "../utils/mathutils.h"
 #include <android/log.h>
 #include <GLES3/gl3.h>
+#include <math.h>
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define RAD_TO_DEG (180*M_1_PI)
 
 MString* PMXReader::readPMXString(FILE *file, char encoding) {
     unsigned int size;
@@ -164,16 +168,19 @@ PMXReader::PMXReader(const char* filePath) {
                     materialEdgeColors=0;
                 }
                 fread(&boneCount, sizeof(int),1,file);
+                ikIndices=0;
                 if(boneCount > 0)
                 {
                     bones=new PMXBone[boneCount];
-                    bonePositions=new float[(boneCount<<4)-boneCount];
+                    bonePositions=new float[boneCount<<2];
                     localBoneMats=new float[boneCount<<4];
                     finalBoneMats=new float[boneCount<<4];
                     boneStateIds =new char[boneCount];
                     currentPassId=0;
+                    ikCount=0;
                     for (int i = 0; i < boneCount; ++i) {
-                        bones[i].read(file,&info,localBoneMats+(i<<4),bonePositions+(i<<4)-boneCount);
+                        bones[i].read(file,&info,localBoneMats+(i<<4),bonePositions+(i<<2));
+                        if(bones[i].getBoneIK())ikCount++;
                         boneStateIds[i]=0;
                     }
                 }
@@ -215,17 +222,31 @@ PMXReader::PMXReader(const char* filePath) {
                             if(!boneRecord[vertices[i].bones[j]])
                             {
                                 boneRecord[vertices[i].bones[j]]=1;
-                                vertices[i].bones[j]=bones[vertices[i].bones[j]].actualIndex=directBoneCount++;
+                                bones[vertices[i].bones[j]].setActualIndex(directBoneCount++);
                             }
-                            else vertices[i].bones[j]=bones[vertices[i].bones[j]].actualIndex;
+                            vertices[i].bones[j]=bones[vertices[i].bones[j]].getActualIndex();
                         }
                     }
                     __android_log_print(ANDROID_LOG_DEBUG,"em.ou","direct bone count=%d",directBoneCount);
                     unsigned int k=directBoneCount;
                     for (int i = 0; i < boneCount; ++i) {
-                        if (!boneRecord[i])bones[i].actualIndex=k++;
+                        if (!boneRecord[i])bones[i].setActualIndex(k++);
                     }
                     delete [] boneRecord;
+
+                    for (unsigned int i = 0; i < boneCount; ++i) {
+                        unsigned int parent=bones[i].getParent();
+                        if(parent < boneCount && parent != i)bones[parent].addChild(i);
+                    }
+
+                    if(ikCount > 0)
+                    {
+                        k=0;
+                        ikIndices=new unsigned int[ikCount];
+                        for (unsigned int i = 0; i < boneCount; ++i) {
+                            if(bones[i].getBoneIK())ikIndices[k++]=i;
+                        }
+                    }
                 }
 
                 if(vertexCount > 0)
@@ -256,32 +277,332 @@ PMXReader::PMXReader(const char* filePath) {
     fclose(file);
 }
 void PMXReader::calculateIK() {
+    float ikPosition[4];
+    float targetPosition[4];
+    float linkNodePosition[4];
+    float toIk[4];
+    float toTarget[4];
+    float ikDir[4];
+    float targetDir[4];
+    float rotateAxis[4];
+    float rotateAxisInWorld[4];
+    float rotateQuaternion[4];
+    float nodeRotateQuaternion[4];
+    float euler[3];
+    for (int i = 0; i < ikCount; ++i) {
+        bool ok= false;
+        bool needUpdate= false;
+        PMXBone* bone=bones+ikIndices[i];
+        PMXBoneIK* boneIK=bone->getBoneIK();
+        PMXBone* target=bones+boneIK->getTarget();
+        multiplyMV(ikPosition,finalBoneMats+(bone->getActualIndex()<<4),bone->getPosition());
+        for (int currentIndex = 0; currentIndex < boneIK->getIkChainLength(); ++currentIndex) {
+            PMXBoneIKChainNode* ikNode=boneIK->getIkChainNodeAt(currentIndex);
+            PMXBone* linkNode=bones+ikNode->getBoneIndex();
+            multiplyMV(targetPosition,finalBoneMats+(target->getActualIndex()<<4),target->getPosition());
+            multiplyMV(linkNodePosition,finalBoneMats+(linkNode->getActualIndex()<<4),linkNode->getPosition());
 
+            subtractVector3(toIk,ikPosition,linkNodePosition);
+            subtractVector3(toTarget,targetPosition,linkNodePosition);
+
+            if(distance3(toIk,toTarget) < 1e-6f)
+            {
+                ok=boneIK->getIkChainLength() == 1;
+                break;
+            }
+
+            normalize3(ikDir,toIk);
+            normalize3(targetDir,toTarget);
+
+            float p=dotProduct3(targetDir,ikDir);
+            if(fabsf(p) >= 1-1e-6f)
+            {
+                if(boneIK->getIkChainLength() > 1)continue;
+                else
+                {
+                    ok=true;
+                    break;
+                }
+            }
+            float angle=(float)acos(p);
+            crossProduct(rotateAxis,targetDir,ikDir);
+            rotateAxis[3]=0;
+            invertM(matrixTmp,finalBoneMats+(linkNode->getActualIndex()<<4));
+            multiplyMV(rotateAxisInWorld,matrixTmp,rotateAxis);
+            float loopAngleLimit=boneIK->getLoopAngleLimit();
+            if(angle > loopAngleLimit)angle=loopAngleLimit;
+            else if(angle < -loopAngleLimit)angle=-loopAngleLimit;
+            setRotateM(matrixTmp,(float)(angle*RAD_TO_DEG),rotateAxisInWorld[0],rotateAxisInWorld[1],rotateAxisInWorld[2]);
+            if(ikNode->isLimited())
+            {
+                matrixToQuaternion(rotateQuaternion,matrixTmp);
+                matrixToQuaternion(nodeRotateQuaternion,linkNode->getLocalMat());
+                multiplyQuaternionWXYZ(nodeRotateQuaternion,nodeRotateQuaternion,rotateQuaternion);
+                quaternionToEuler(euler, nodeRotateQuaternion);
+                euler[0]=-clamp(ikNode->getLowLimit()[0],ikNode->getHighLimit()[0],-euler[0]);
+                euler[1]=clamp(ikNode->getLowLimit()[1],ikNode->getHighLimit()[1],euler[1]);
+                euler[2]=clamp(ikNode->getLowLimit()[2],ikNode->getHighLimit()[2],euler[2]);
+                eulerToQuaternion(nodeRotateQuaternion,euler);
+                if(fabs(nodeRotateQuaternion[0]) >= 1-1e-6f)continue;
+                float a= acosf(nodeRotateQuaternion[0])*2;
+                linkNode->setIKMat(ikNode->getIKMat());
+                setRotateM(linkNode->getIKMat(),(float)(a*RAD_TO_DEG),nodeRotateQuaternion[1],nodeRotateQuaternion[2],nodeRotateQuaternion[3]);
+            }
+            else
+            {
+                linkNode->setIKMat(ikNode->getIKMat());
+                multiplyMM(linkNode->getIKMat(),linkNode->getLocalMat(),matrixTmp);
+            }
+            needUpdate=true;
+            boneStateIds[boneIK->getTarget()]= (char) (currentPassId ^ 1);
+            for (int j = 0; j <= currentIndex; ++j)boneStateIds[boneIK->getIkChainNodeAt(j)->getBoneIndex()]= (char) (currentPassId ^ 1);
+            updateIKMatrix(boneIK->getTarget());
+            for (int j = 0; j <= currentIndex; ++j) {
+                if(boneStateIds[boneIK->getIkChainNodeAt(j)->getBoneIndex()] != currentPassId)updateIKMatrix(boneIK->getIkChainNodeAt(j)->getBoneIndex());
+            }
+        }
+        if(!ok)
+        {
+            int loopCount=boneIK->getLoopCount();
+            for (int j = 1; j < loopCount; ++j) {
+                for (int currentIndex = 0; currentIndex < boneIK->getIkChainLength(); ++currentIndex) {
+                    PMXBoneIKChainNode *ikNode = boneIK->getIkChainNodeAt(currentIndex);
+                    PMXBone *linkNode = bones + ikNode->getBoneIndex();
+                    multiplyMV(targetPosition, finalBoneMats + (target->getActualIndex() << 4), target->getPosition());
+                    multiplyMV(linkNodePosition, finalBoneMats + (linkNode->getActualIndex() << 4), linkNode->getPosition());
+
+                    subtractVector3(toIk, ikPosition, linkNodePosition);
+                    subtractVector3(toTarget, targetPosition, linkNodePosition);
+
+                    if(j > 1 && distance3(toIk,toTarget) < 1e-6f)break;
+
+                    normalize3(ikDir,toIk);
+                    normalize3(targetDir,toTarget);
+
+                    float p=dotProduct3(targetDir,ikDir);
+                    float angle;
+                    if(boneIK->getIkChainLength() > 1)
+                    {
+                        if(j < 2 && currentIndex+1 == boneIK->getIkChainLength())
+                        {
+                            angle=0.2f;
+                            rotateAxisInWorld[0]=1;
+                            rotateAxisInWorld[1]=rotateAxisInWorld[2]=0;
+                        }
+                        else
+                        {
+                            if(fabsf(p) > 1-1e-6f)continue;
+                            angle=acosf(p);
+                            crossProduct(rotateAxis,targetDir,ikDir);
+                            invertM(matrixTmp,finalBoneMats+(linkNode->getActualIndex()<<4));
+                            multiplyMV(rotateAxisInWorld,matrixTmp,rotateAxis);
+                        }
+                    }
+                    else
+                    {
+                        if(fabsf(p) > 1-1e-6f)continue;
+                        angle=acosf(p);
+                        crossProduct(rotateAxis,targetDir,ikDir);
+                        invertM(matrixTmp,finalBoneMats+(linkNode->getActualIndex()<<4));
+                        multiplyMV(rotateAxisInWorld,matrixTmp,rotateAxis);
+                    }
+                    float loopAngleLimit=boneIK->getLoopAngleLimit();
+                    if(angle > loopAngleLimit)angle=loopAngleLimit;
+                    else if(angle < -loopAngleLimit)angle=-loopAngleLimit;
+                    if(ikNode->isLimited())
+                    {
+                        setRotateM(matrixTmp,(float)(angle*RAD_TO_DEG),rotateAxisInWorld[0],rotateAxisInWorld[1],rotateAxisInWorld[2]);
+                        matrixToQuaternion(rotateQuaternion,matrixTmp);
+                        matrixToQuaternion(nodeRotateQuaternion,linkNode->getCurrentMat());
+                        multiplyQuaternionWXYZ(nodeRotateQuaternion,nodeRotateQuaternion,rotateQuaternion);
+                        quaternionToEuler(euler,nodeRotateQuaternion);
+                        euler[0]=-clamp(ikNode->getLowLimit()[0],ikNode->getHighLimit()[0],-euler[0]);
+                        euler[1]=clamp(ikNode->getLowLimit()[1],ikNode->getHighLimit()[1],euler[1]);
+                        euler[2]=clamp(ikNode->getLowLimit()[2],ikNode->getHighLimit()[2],euler[2]);
+                        eulerToQuaternion(nodeRotateQuaternion,euler);
+                        if(fabs(nodeRotateQuaternion[0]) >= 1-1e-6f)continue;
+                        float a = acosf(nodeRotateQuaternion[0])*2;
+                        if(!linkNode->getIKMat())linkNode->setIKMat(ikNode->getIKMat());
+                        setRotateM(linkNode->getIKMat(),(float)(a*RAD_TO_DEG),nodeRotateQuaternion[1],nodeRotateQuaternion[2],nodeRotateQuaternion[3]);
+                    }
+                    else
+                    {
+                        if(linkNode->getIKMat())rotateM(linkNode->getIKMat(),(float)(angle*RAD_TO_DEG),rotateAxisInWorld[0],rotateAxisInWorld[1],rotateAxisInWorld[2]);
+                        else
+                        {
+                            linkNode->setIKMat(ikNode->getIKMat());
+                            rotateM2(linkNode->getIKMat(),linkNode->getLocalMat(),(float)(angle*RAD_TO_DEG),rotateAxisInWorld[0],rotateAxisInWorld[1],rotateAxisInWorld[2]);
+                        }
+                    }
+                    needUpdate=true;
+                    boneStateIds[boneIK->getTarget()]= (char) (currentPassId ^ 1);
+                    for (int k = 0; k <= currentIndex; ++k)boneStateIds[boneIK->getIkChainNodeAt(k)->getBoneIndex()]= (char) (currentPassId ^ 1);
+                    updateIKMatrix(boneIK->getTarget());
+                    for (int k = 0; k <= currentIndex; ++k) {
+                        if(boneStateIds[boneIK->getIkChainNodeAt(k)->getBoneIndex()] != currentPassId)updateIKMatrix(boneIK->getIkChainNodeAt(k)->getBoneIndex());
+                    }
+                }
+            }
+        }
+        if (needUpdate)
+        {
+            invalidateChildren(boneIK->getTarget());
+            for (int j = 0; j < boneIK->getIkChainLength(); ++j) {
+                if(boneStateIds[boneIK->getIkChainNodeAt(j)->getBoneIndex()] == currentPassId)invalidateChildren(boneIK->getIkChainNodeAt(j)->getBoneIndex());
+            }
+            for (unsigned int j = 0; j < boneCount; ++j) {
+                unsigned int appendParent=(bones+j)->getAppendParent();
+                if(appendParent < boneCount && boneStateIds[appendParent] != currentPassId)
+                {
+                    invalidateChildren(j);
+                }
+            }
+            for (unsigned int j = 0; j < boneCount; ++j) {
+                if(boneStateIds[j] != currentPassId)
+                {
+                    updateIKMatrix(j);
+                }
+            }
+        }
+    }
 }
-void PMXReader::calculateBone(int index) {
+void PMXReader::invalidateChildren(unsigned int index) {
+    boneStateIds[index]= (char) (currentPassId ^ 1);
+    int childCount=bones[index].getChildCount();
+    for (int i = 0; i < childCount; ++i) {
+        unsigned int child=bones[index].getChildAt(i);
+        if(boneStateIds[child] == currentPassId)invalidateChildren(child);
+    }
+}
+void PMXReader::updateIKMatrix(unsigned int index) {
     if(boneStateIds[index] != currentPassId)
     {
-        if(bones[index].parent < boneCount && bones[index].parent != index)
+        unsigned int appendParent=bones[index].getAppendParent();
+        float * position=bones[index].getPosition();
+        unsigned int parent=bones[index].getParent();
+        if(appendParent < boneCount && appendParent != index)//TODO implement append from self
         {
-            calculateBone(bones[index].parent);
-            translateM2(matrixTmp,bones[index].localMat,-bones[index].position[0],-bones[index].position[1],-bones[index].position[2]);
-            translateMPre(matrixTmp,bones[index].position[0],bones[index].position[1],bones[index].position[2]);
-            multiplyMM(finalBoneMats+(bones[index].actualIndex<<4),finalBoneMats+(bones[bones[index].parent].actualIndex<<4),matrixTmp);
+            updateIKMatrix(appendParent);
+            const float * appendParentLocal=bones[appendParent].getLocalMatWithAppend() ? bones[appendParent].getLocalMatWithAppend() : bones[appendParent].getCurrentMat();
+            if(bones[index].getAppendRatio() == 1)
+            {
+                multiplyMM(bones[index].getLocalMatWithAppend(),bones[index].getCurrentMat(),appendParentLocal);
+            }
+            else
+            {
+                matrixToQuaternion(vecTmp,appendParentLocal);
+                if(fabsf(vecTmp[0]) < 1-1e-6f)
+                {
+                    float angle=acosf(vecTmp[0])*2;
+                    translateM2(bones[index].getLocalMatWithAppend(),bones[index].getCurrentMat(),appendParentLocal[12],appendParentLocal[13],appendParentLocal[14]);
+                    rotateM(bones[index].getLocalMatWithAppend(), (float) (angle * RAD_TO_DEG), vecTmp[1], vecTmp[2], vecTmp[3]);
+                }
+                else
+                {
+                    floatArrayCopy(bones[index].getCurrentMat(),bones[index].getLocalMatWithAppend(),16);
+                }
+            }
+            if(parent < boneCount && parent != index)
+            {
+                updateIKMatrix(parent);
+                translateM2(matrixTmp,bones[index].getLocalMatWithAppend(),-position[0],-position[1],-position[2]);
+                translateMPre(matrixTmp,position[0],position[1],position[2]);
+                multiplyMM(finalBoneMats+(bones[index].getActualIndex()<<4),finalBoneMats+(bones[parent].getActualIndex()<<4),matrixTmp);
+            }
+            else
+            {
+                translateM2(finalBoneMats+(bones[index].getActualIndex()<<4),bones[index].getLocalMatWithAppend(),-position[0],-position[1],-position[2]);
+                translateMPre(finalBoneMats+(bones[index].getActualIndex()<<4),position[0],position[1],position[2]);
+            }
+            boneStateIds[index]=currentPassId;
         }
         else
         {
-            translateM2(finalBoneMats+(bones[index].actualIndex<<4),bones[index].localMat,-bones[index].position[0],-bones[index].position[1],-bones[index].position[2]);
-            translateMPre(finalBoneMats+(bones[index].actualIndex<<4),bones[index].position[0],bones[index].position[1],bones[index].position[2]);
+            if(parent < boneCount && parent != index)
+            {
+                updateIKMatrix(parent);
+                translateM2(matrixTmp,bones[index].getCurrentMat(),-position[0],-position[1],-position[2]);
+                translateMPre(matrixTmp,position[0],position[1],position[2]);
+                multiplyMM(finalBoneMats+(bones[index].getActualIndex()<<4),finalBoneMats+(bones[parent].getActualIndex()<<4),matrixTmp);
+            }
+            else
+            {
+                translateM2(finalBoneMats+(bones[index].getActualIndex()<<4),bones[index].getCurrentMat(),-position[0],-position[1],-position[2]);
+                translateMPre(finalBoneMats+(bones[index].getActualIndex()<<4),position[0],position[1],position[2]);
+            }
+            boneStateIds[index]=currentPassId;
         }
-        boneStateIds[index]=currentPassId;
+    }
+}
+void PMXReader::calculateBone(unsigned int index) {
+    if(boneStateIds[index] != currentPassId)
+    {
+        bones[index].setIKMat(0);
+        unsigned int appendParent=bones[index].getAppendParent();
+        float * position=bones[index].getPosition();
+        unsigned int parent=bones[index].getParent();
+        if(appendParent < boneCount && appendParent != index)//TODO implement append from self
+        {
+            calculateBone(appendParent);
+            const float * appendParentLocal=bones[appendParent].getLocalMatWithAppend() ? bones[appendParent].getLocalMatWithAppend() : bones[appendParent].getLocalMat();
+            float ratio=bones[index].getAppendRatio();
+            if(ratio == 1)
+            {
+                multiplyMM(bones[index].getLocalMatWithAppend(),bones[index].getLocalMat(),appendParentLocal);
+            }
+            else
+            {
+                matrixToQuaternion(vecTmp,appendParentLocal);
+                if(fabsf(vecTmp[0]) < 1-1e-6f)
+                {
+                    float angle=acosf(vecTmp[0])*2*ratio;
+                    __android_log_print(ANDROID_LOG_DEBUG,"em.ou","angle=%f",angle);
+                    translateM2(bones[index].getLocalMatWithAppend(),bones[index].getLocalMat(),appendParentLocal[12]*ratio,appendParentLocal[13]*ratio,appendParentLocal[14]*ratio);
+                    rotateM(bones[index].getLocalMatWithAppend(), (float) (angle * RAD_TO_DEG), vecTmp[1], vecTmp[2], vecTmp[3]);
+                }
+                else
+                {
+                    floatArrayCopy(bones[index].getLocalMat(),bones[index].getLocalMatWithAppend(),16);
+                }
+            }
+            if(parent < boneCount && parent != index)
+            {
+                calculateBone(parent);
+                translateM2(matrixTmp,bones[index].getLocalMatWithAppend(),-position[0],-position[1],-position[2]);
+                translateMPre(matrixTmp,position[0],position[1],position[2]);
+                multiplyMM(finalBoneMats+(bones[index].getActualIndex()<<4),finalBoneMats+(bones[parent].getActualIndex()<<4),matrixTmp);
+            }
+            else
+            {
+                translateM2(finalBoneMats+(bones[index].getActualIndex()<<4),bones[index].getLocalMatWithAppend(),-position[0],-position[1],-position[2]);
+                translateMPre(finalBoneMats+(bones[index].getActualIndex()<<4),position[0],position[1],position[2]);
+            }
+            boneStateIds[index]=currentPassId;
+        }
+        else
+        {
+            if(parent < boneCount && parent != index)
+            {
+                calculateBone(parent);
+                translateM2(matrixTmp,bones[index].getLocalMat(),-position[0],-position[1],-position[2]);
+                translateMPre(matrixTmp,position[0],position[1],position[2]);
+                multiplyMM(finalBoneMats+(bones[index].getActualIndex()<<4),finalBoneMats+(bones[parent].getActualIndex()<<4),matrixTmp);
+            }
+            else
+            {
+                translateM2(finalBoneMats+(bones[index].getActualIndex()<<4),bones[index].getLocalMat(),-position[0],-position[1],-position[2]);
+                translateMPre(finalBoneMats+(bones[index].getActualIndex()<<4),position[0],position[1],position[2]);
+            }
+            boneStateIds[index]=currentPassId;
+        }
     }
 }
 void PMXReader::updateBoneMats() {
-    calculateIK();
     currentPassId^=1;
-    for (int i = boneCount-1; i >= 0; --i) {
+    for (unsigned int i = 0; i < boneCount; ++i) {
         calculateBone(i);
     }
+    calculateIK();
 }
 void PMXReader::draw(const float *viewMat, const float *projectionMat, EnvironmentLight* environmentLight) {
     if(newBoneTransform)
@@ -566,6 +887,7 @@ PMXReader::~PMXReader() {
     if(bonePositions)delete [] bonePositions;
     if(localBoneMats)delete [] localBoneMats;
     if(finalBoneMats)delete [] finalBoneMats;
+    if(ikIndices)delete [] ikIndices;
     if(boneStateIds)delete [] boneStateIds;
     if(morphs)delete [] morphs;
 }
@@ -751,6 +1073,7 @@ PMXMaterial::~PMXMaterial() {
 
 PMXBoneIKChainNode::PMXBoneIKChainNode() {
     low=high=0;
+    ikMat=0;
 }
 
 void PMXBoneIKChainNode::read(FILE *file,PMXInfo* info) {
@@ -758,8 +1081,8 @@ void PMXBoneIKChainNode::read(FILE *file,PMXInfo* info) {
     fread(&(ikBone),info->boneSize,1,file);
     char lim;
     fread(&lim, sizeof(char),1,file);
-    isLimited=(lim != 0);
-    if(isLimited)
+    limited=(lim != 0);
+    if(limited)
     {
         low=new float[3];
         high=new float[3];
@@ -771,6 +1094,27 @@ void PMXBoneIKChainNode::read(FILE *file,PMXInfo* info) {
         low=0;
         high=0;
     }
+}
+
+unsigned int PMXBoneIKChainNode::getBoneIndex() {
+    return ikBone;
+}
+
+bool PMXBoneIKChainNode::isLimited() {
+    return limited;
+}
+
+const float* PMXBoneIKChainNode::getLowLimit() {
+    return low;
+}
+
+const float* PMXBoneIKChainNode::getHighLimit() {
+    return high;
+}
+
+float* PMXBoneIKChainNode::getIKMat() {
+    if(!ikMat)ikMat=new float[16];
+    return ikMat;
 }
 
 PMXBoneIK::PMXBoneIK(FILE *file,PMXInfo* info) {
@@ -792,10 +1136,28 @@ PMXBoneIK::PMXBoneIK(FILE *file,PMXInfo* info) {
     }
 }
 
+unsigned int PMXBoneIK::getTarget() {
+    return target;
+}
+
+int PMXBoneIK::getIkChainLength() {
+    return ikChainLength;
+}
+
+PMXBoneIKChainNode* PMXBoneIK::getIkChainNodeAt(int index) {
+    return ikChain+index;
+}
+
 PMXBone::PMXBone() {
     name=nameE=0;
     offset=localX=localY=localZ=axis=0;
     boneIK=0;
+    ikMat=0;
+    childCount=0;
+    childrenCapacity=0;
+    children=0;
+    localMatWithAppend=0;
+    appendFromSelf= false;
 }
 
 void PMXBone::read(FILE *file,PMXInfo* info,float* localMat, float* position) {
@@ -807,7 +1169,8 @@ void PMXBone::read(FILE *file,PMXInfo* info,float* localMat, float* position) {
     fread(position, sizeof(float),3,file);
     position[0]*=0.1f;
     position[1]*=0.1f;
-    position[2]=-position[2]*0.1f;
+    position[2]*=-0.1f;
+    position[3]=1;
     parent=0;
     fread(&parent,info->boneSize,1,file);
     fread(&level, sizeof(int),1,file);
@@ -831,7 +1194,16 @@ void PMXBone::read(FILE *file,PMXInfo* info,float* localMat, float* position) {
         appendParent=0;
         fread(&appendParent,info->boneSize,1,file);
         fread(&appendRatio, sizeof(float),1,file);
+        if(appendRatio == 0)
+        {
+            appendParent=0xffffffff;
+        }
+        else
+        {
+            localMatWithAppend=new float[16];
+        }
     }
+    else appendParent=0xffffffff;
     if(CHECK_FLAG(flag,FIX_AXIS))
     {
         axis=new float[3];
@@ -873,18 +1245,138 @@ void PMXBone::normalizeLocal() {
         if(!localY)localY=new float[3];
         crossProduct(localY,localZ,localX);
         crossProduct(localZ,localX,localY);
-        normalizeInto(localX);
-        normalizeInto(localY);
-        normalizeInto(localZ);
+        normalize3Into(localX);
+        normalize3Into(localY);
+        normalize3Into(localZ);
     }
 }
 
+PMXBoneIK* PMXBone::getBoneIK() {
+    return boneIK;
+}
+
+void PMXBone::setActualIndex(unsigned int actualIndex) {
+    this->actualIndex=actualIndex;
+}
+
+unsigned int PMXBone::getActualIndex() {
+    return actualIndex;
+}
+
+float* PMXBone::getPosition() {
+    return position;
+}
+
+unsigned int PMXBone::getParent() {
+    return parent;
+}
+
+unsigned int PMXBone::getAppendParent() {
+    return appendParent;
+}
+
+float PMXBone::getAppendRatio() {
+    return appendRatio;
+}
+
+int PMXBone::getChildCount() {
+    return childCount;
+}
+
+const float* PMXBone::getLocalMat() {
+    return localMat;
+}
+
+void PMXBone::setIKMat(float *ikMat) {
+    this->ikMat=ikMat;
+}
+
+void PMXBone::addChild(unsigned int child) {
+    if(!children)
+    {
+        children=new unsigned int[1];
+        children[0]=child;
+        childrenCapacity=childCount=1;
+    }
+    else
+    {
+        if(childCount == childrenCapacity)
+        {
+            childrenCapacity<<=1;
+            unsigned int * newArray=new unsigned int[childrenCapacity];
+            for (int i = 0; i < childCount; ++i) {
+                newArray[i]=children[i];
+            }
+            delete [] children;
+            children=newArray;
+        }
+        children[childCount++]=child;
+    }
+    __android_log_print(ANDROID_LOG_DEBUG,"em.ou","child count=%d",childCount);
+}
+
+unsigned int PMXBone::getChildAt(int index) {
+    return children[index];
+}
+
+void PMXBone::setAppendFromSelf(bool appendFromSelf) {
+    this->appendFromSelf=appendFromSelf;
+}
+
+bool PMXBone::isAppendFromSelf() {
+    return appendFromSelf;
+}
+
+const float* PMXBone::getCurrentMat() {
+    return ikMat ? ikMat : localMat;
+}
+
+float* PMXBone::getLocalMatWithAppend() {
+    return localMatWithAppend;
+}
+
+float* PMXBone::getIKMat() {
+    return ikMat;
+}
+
+const char* PMXBone::getName() {
+    return name->getData();
+}
+
+void PMXBone::rotateBy(float a, float x, float y, float z) {
+    rotateM(ikMat ? ikMat : localMat,a,x,y,z);
+    //TODO implement append from self
+}
+
+void PMXBone::translationBy(float x, float y, float z) {
+    translateM(ikMat ? ikMat : localMat,x,y,z);
+    //TODO implement append from self
+}
+
+void PMXBone::resetLocal() {
+    float quaternion[4];
+    matrixToQuaternion(quaternion,ikMat ? ikMat : localMat);
+    float angle=(float) acos(quaternion[0])*2;
+    if(fabsf(angle) > 1-1e-6f)rotateBy(-angle,quaternion[1],quaternion[2],quaternion[3]);
+    const float * mat=getCurrentMat();
+    translationBy(-mat[12],-mat[13],-mat[14]);
+}
+
 PMXBoneIKChainNode::~PMXBoneIKChainNode() {
-    if(isLimited)
+    if(limited)
     {
         delete [] low;
         delete [] high;
     }
+    if(ikMat)delete [] ikMat;
+}
+
+float PMXBoneIK::getLoopAngleLimit() {
+    return loopAngleLimit;
+}
+
+int PMXBoneIK::getLoopCount() {
+    return loopCount;
 }
 
 PMXBoneIK::~PMXBoneIK() {
@@ -903,6 +1395,8 @@ PMXBone::~PMXBone() {
     if(localY)delete [] localY;
     if(localZ)delete [] localZ;
     if(boneIK)delete boneIK;
+    if(children)delete [] children;
+    if(localMatWithAppend)delete [] localMatWithAppend;
 }
 
 void PMXGroupMorphData::read(FILE *file, PMXInfo *info) {
