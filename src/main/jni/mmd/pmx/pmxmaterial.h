@@ -49,6 +49,15 @@ private:
     bool shadow,mThrowsShadow,mAcceptShadow;
 
     int textureState,sphereState;
+
+    float * initialDiffuse;
+    float * initialSpecular;
+    float * initialAmbient;
+    float * initialEdgeColor;
+    float initialEdgeSize;
+
+    float textureCoefficient[4];
+    float sphereCoefficient[4];
 public:
     PMXMaterial();
     void read(FILE *file, size_t textureSize, MStringEncoding encoding, float *diffuse, float *specular,
@@ -70,6 +79,23 @@ public:
     void onTextureLoaded(bool isTextureSuccessful, bool isSphereSuccessful);
     bool throwsShadow();
     bool acceptShadow();
+
+    const float * getInitialDiffuse();
+    const float * getInitialSpecular();
+    const float * getInitialAmbient();
+    const float * getInitialEdgeColor();
+    const float getInitialEdgeSize();
+
+    void setDiffuse(float r, float g, float b, float a);
+    void setSpecular(float r, float g, float b, float s);
+    void setAmbient(float r, float g, float b);
+    void setEdgeColor(float r, float g, float b, float a);
+    void setEdgeSize(float size);
+
+    void setTextureCoefficient(float r, float g, float b, float a);
+    void setSphereCoefficient(float r, float g, float b, float a);
+    const float * getTextureCoefficient();
+    const float * getSphereCoefficient();
 
     ~PMXMaterial();
 };

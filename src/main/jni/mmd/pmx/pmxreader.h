@@ -21,6 +21,7 @@ typedef struct PMX_HEADER{
 class PMXReader:public AbsGLObject{
 private:
     PMXInfo info;
+    MStringEncoding encoding;
     MString *name,*nameE,*desc,*descE;
     PMXVertex* vertices;
     PMXTexture* textures;
@@ -36,13 +37,14 @@ private:
     GLuint mProgram;
     GLuint mVertexShader,mFragmentShader;
 
-    GLint mPositionHandle,mNormalHandle,mUVHandle,mBonesHandle,mWeightsHandle;
-    GLint mSunPositionHandle;
-    GLint mViewMatHandle,mProjectionMatHandle,mBoneMatsHandle,mSunMatHandle;
+    GLuint mPositionHandle,mNormalHandle,mUVHandle,mBonesHandle,mWeightsHandle;
+    GLuint mSunPositionHandle;
+    GLuint mViewMatHandle,mProjectionMatHandle,mBoneMatsHandle,mSunMatHandle;
 
-    GLint mSunLightStrengthHandle;
-    GLint mAmbientHandle,mDiffuseHandle,mSpecularHandle;
-    GLint mSamplersHandle,mTextureModesHandle;
+    GLuint mSunLightStrengthHandle;
+    GLuint mAmbientHandle,mDiffuseHandle,mSpecularHandle;
+    GLuint mSamplersHandle,mTextureModesHandle;
+    GLuint mTextureCoefficientHandle,mSphereCoefficientHandle;
 
     GLint samplers[3]={0,1,0};
 
@@ -53,7 +55,7 @@ private:
     int materialCount;
     unsigned int boneCount;
     unsigned int directBoneCount;
-    int morphCount;
+    unsigned int morphCount;
     float * vertexCoordinates;
     float * normals;
     float * uvs;
@@ -82,14 +84,29 @@ private:
 
     GLuint mShadowProgram;
     GLuint mShadowVertexShader,mShadowFragmentShader;
-    GLint mShadowPositionHandle,mShadowBonesHandle,mShadowWeightHandle;
-    GLint mShadowSunMatHandle,mShadowBoneMatsHandle;
+    GLuint mShadowPositionHandle,mShadowBonesHandle,mShadowWeightHandle;
+    GLuint mShadowSunMatHandle,mShadowBoneMatsHandle;
 
     unsigned int ikCount;
     unsigned int * ikIndices;
 
     void updateBoneMats();
     void invalidateChildren(unsigned int index);
+    void updateModelState();
+
+    void readInfo(FILE *file);
+    void readNameAndDescription(FILE *file);
+    void readVerticesAndIndices(FILE *file);
+    void readTextures(FILE *file, const char *filePath);
+    void readMaterials(FILE *file);
+    void readBones(FILE *file);
+    void readMorphs(FILE *file);
+
+    void performMaterialAddOperation(unsigned int index, PMXMaterialMorphData *data, float f);
+    void performMaterialMulOperation(unsigned int index, PMXMaterialMorphData *data, float f);
+
+    unsigned int vertexChangeStart,vertexChangeEnd;
+    unsigned int uvChangeStart,uvChangeEnd;
 public:
     PMXReader(const char* filePath);
     void genVertexBuffers();
@@ -98,6 +115,15 @@ public:
     void initShadowMapShader();
     void draw(const float*, const float*, EnvironmentLight*);
     void drawShadowMap(EnvironmentLight*);
+
+    void setMorphFraction(int index, float f);
+    float getMorphFraction(int index);
+
+    void rotateBone(unsigned int index, float a, float x, float y, float z);
+    void translateBone(unsigned int index, float x, float y, float z);
+
+    unsigned int getMorphCount();
+
     ~PMXReader();
 };
 

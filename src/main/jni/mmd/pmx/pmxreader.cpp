@@ -8,12 +8,12 @@
 #include "../../vector/vector.h"
 #include "../../quaternion/quaternion.h"
 #include "../../utils/mathutils.h"
-#include <android/log.h>
+#include "../../utils/debugutils.h"
 #include <math.h>
 
 PMXReader::PMXReader(const char* filePath) {
     FILE* file=fopen(filePath,"rb");
-    __android_log_print(ANDROID_LOG_DEBUG,"em.ou","file=%p",file);
+    LOG_SYSTEM_OUT("file=%p",file);
     PMXHeader header;
     fread(&header, sizeof(PMXHeader),1,file);
     switch (header.magic&0xffffff)
@@ -21,7 +21,7 @@ PMXReader::PMXReader(const char* filePath) {
         case 0x584d50://"PMX "
             float version;
             fread(&version, sizeof(float),1,file);
-            __android_log_print(ANDROID_LOG_DEBUG,"em.ou","version=%f",version);
+            LOG_SYSTEM_OUT("version=%f",version);
             if(version > 2.0)
             {
                 //not supported
@@ -29,148 +29,30 @@ PMXReader::PMXReader(const char* filePath) {
             }
             else
             {
-                char rSize;
-                fread(&rSize, sizeof(char),1,file);
-                fread(&info, sizeof(info),1,file);
-                if(rSize > 8)
-                {
-                    fseek(file,rSize-8,SEEK_CUR);
-                }
-                MStringEncoding encoding= (MStringEncoding) info.encoding;
-                name=MString::readString(file,encoding);
-                nameE=MString::readString(file,encoding);
-                desc=MString::readString(file,encoding);
-                descE=MString::readString(file,encoding);
-                fread(&vertexCount, sizeof(int),1,file);
-                if(vertexCount > 0)
-                {
-                    vertexCoordinates=new float[vertexCount*3];
-                    normals=new float[vertexCount*3];
-                    uvs=new float[vertexCount*2];
-                    vertices=new PMXVertex[vertexCount];
-                    for (int i = 0; i < vertexCount; ++i) {
-                        vertices[i].read(file,&info,vertexCoordinates+(i<<2)-i,normals+(i<<2)-i,uvs+(i<<1));
-                    }
-                }
-                fread(&indexCount, sizeof(int),1,file);
-                faceCount=indexCount/3;
-                indices=new unsigned int[indexCount];
-                for (int i = 0; i < indexCount; ++i) {
-                    indices[i]=0;
-                    fread(indices+i,info.vertexSize,1,file);
-                    if(i%3 == 2)
-                    {
-                        indices[i]^=indices[i-1];
-                        indices[i-1]=indices[i]^indices[i-1];
-                        indices[i]^=indices[i-1];
-                    }
-                }
-                fread(&textureCount, sizeof(int),1,file);
-                if(textureCount > 0)
-                {
-                    textures=new PMXTexture[textureCount];
-                    int pathLength=-1;
-                    for (int i = 0; ; ++i) {
-                        if(filePath[i] == '/')pathLength=i+1;
-                        else if(filePath[i] == 0)break;
-                    }
-                    for (int i = 0; i < textureCount; ++i) {
-                        textures[i].read(file,encoding,filePath,pathLength);
-                    }
-                }
-                else textures=0;
-                fread(&materialCount, sizeof(int),1,file);
-                if(materialCount > 0)
-                {
-                    materials=new PMXMaterial[materialCount];
-                    materialIndices=new unsigned int[materialCount];
-                    materialDiffuses=new float[materialCount<<2];
-                    materialSpecular=new float[materialCount<<2];
-                    materialAmbient=new float[(materialCount<<2)-materialCount];
-                    materialEdgeColors=new float[materialCount<<2];
-                    int lastNoAlphaIndex=0;
-                    int lastAlphaIndex=materialCount-1;
-                    long offset=0;
-                    for (unsigned int i = 0; i < materialCount; ++i) {
-                        materials[i].read(file, info.texSize, encoding, materialDiffuses + (i << 2),
-                                          materialSpecular + (i << 2),
-                                          materialAmbient + (i << 2) - i,
-                                          materialEdgeColors + (i << 2));
-                        bool hasAlpha=materials[i].getDiffuse()[3] != 1;
-                        GLsizei textureIndex=materials[i].getTextureIndex();
-                        if(textureIndex < textureCount)
-                        {
-                            textures[textureIndex].initGLTexture();
-                            hasAlpha|=textures[textureIndex].hasAlpha();
-                        }
-                        GLsizei sphereIndex=materials[i].getSphereIndex();
-                        if(sphereIndex < textureCount)textures[sphereIndex].initGLTexture();
-                        materials[i].onTextureLoaded(textures[textureIndex].getTextureId() != 0,textures[sphereIndex].getTextureId() != 0);
-                        materials[i].setOffset(offset<<2);
-                        offset+=materials[i].getIndexCount();
-                        if(hasAlpha)materialIndices[lastAlphaIndex--]=i;
-                        else materialIndices[lastNoAlphaIndex++]=i;
-                    }
-                    int halfAlphaCount=(materialCount-lastNoAlphaIndex)>>1;
-                    for (int i = 0; i < halfAlphaCount; ++i) {
-                        materialIndices[materialCount-i-1]^=materialIndices[lastNoAlphaIndex+i];
-                        materialIndices[lastNoAlphaIndex+i]=materialIndices[materialCount-i-1]^materialIndices[lastNoAlphaIndex+i];
-                        materialIndices[materialCount-i-1]^=materialIndices[lastNoAlphaIndex+i];
-                    }
-                }
-                else
-                {
-                    materials=0;
-                    materialDiffuses=0;
-                    materialSpecular=0;
-                    materialAmbient=0;
-                    materialEdgeColors=0;
-                }
-                fread(&boneCount, sizeof(int),1,file);
-                ikIndices=0;
-                if(boneCount > 0)
-                {
-                    bones=new PMXBone[boneCount];
-                    bonePositions=new float[boneCount<<2];
-                    localBoneMats=new float[boneCount<<4];
-                    finalBoneMats=new float[boneCount<<4];
-                    boneStateIds =new char[boneCount];
-                    currentPassId=0;
-                    ikCount=0;
-                    for (int i = 0; i < boneCount; ++i) {
-                        bones[i].read(file, info.boneSize, UTF8, localBoneMats + (i << 4),
-                                      bonePositions + (i << 2));
-                        if(bones[i].getBoneIK())ikCount++;
-                        boneStateIds[i]=0;
-                    }
-                }
-                else
-                {
-                    bones=0;
-                    bonePositions=0;
-                    localBoneMats=0;
-                    finalBoneMats=0;
-                    boneStateIds=0;
-                }
-                fread(&morphCount, sizeof(int),1,file);
-                if(morphCount > 0)
-                {
-                    morphs=new PMXMorph[morphCount];
-                    for (int i = 0; i < morphCount; ++i) {
-                        morphs[i].read(file,&info);
-                    }
-                }
-                else morphs=0;
+                readInfo(file);
+
+                readNameAndDescription(file);
+
+                readVerticesAndIndices(file);
+
+                readTextures(file, filePath);
+
+                readMaterials(file);
+
+                readBones(file);
+
+                readMorphs(file);
+
+                fclose(file);
 
                 //end reading
                 hasVertexBuffers = false;
                 hasBoneBuffers= false;
                 newBoneTransform= true;
-                float scale=0.1;
 
                 directBoneCount=0;
                 glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS,&maxVertexShaderVecCount);
-                __android_log_print(ANDROID_LOG_DEBUG,"em.ou","max vec4=%d",maxVertexShaderVecCount);
+                LOG_SYSTEM_OUT("max vec4=%d",maxVertexShaderVecCount);
                 if(boneCount > 0)
                 {
                     unsigned int * boneRecord=new unsigned int[boneCount];
@@ -189,7 +71,7 @@ PMXReader::PMXReader(const char* filePath) {
                             vertices[i].setBoneAt(j,bones[bone].getActualIndex());
                         }
                     }
-                    __android_log_print(ANDROID_LOG_DEBUG,"em.ou","direct bone count=%d",directBoneCount);
+                    LOG_SYSTEM_OUT("direct bone count=%d",directBoneCount);
                     unsigned int k=directBoneCount;
                     for (int i = 0; i < boneCount; ++i) {
                         if (!boneRecord[i])bones[i].setActualIndex(k++);
@@ -211,32 +93,22 @@ PMXReader::PMXReader(const char* filePath) {
                     }
                 }
 
-                if(vertexCount > 0)
-                {
-                    for (int i = 0; i < vertexCount; ++i) {
-                        int offset=(i<<2)-i;
-                        vertexCoordinates[offset]*=scale;
-                        vertexCoordinates[offset+1]*=scale;
-                        vertexCoordinates[offset+2]*=-scale;
-                    }
-                    for (int i = 0; i < vertexCount; ++i) {
-                        int offset=(i<<2)-i;
-                        normals[offset+2]=-normals[offset+2];
-                    }
-                }
-
                 genVertexBuffers();
                 genBoneBuffers();
                 initShader();
+
+                vertexChangeStart=vertexChangeEnd=0xffffffff;
+                uvChangeStart=uvChangeEnd=0xffffffff;
             }
             break;
         case 0x786d50://"Pmx " pmx v1
+            fclose(file);
             break;
         default:
-            __android_log_print(ANDROID_LOG_DEBUG,"em.ou","magic=%d",header.magic);
+            LOG_SYSTEM_OUT("magic=%d",header.magic);
+            fclose(file);
             break;
     }
-    fclose(file);
 }
 void PMXReader::calculateIK() {
     float ikPosition[4];
@@ -518,7 +390,7 @@ void PMXReader::calculateBone(unsigned int index) {
                 if(fabsf(vecTmp[0]) < 1-1e-6f)
                 {
                     float angle=acosf(vecTmp[0])*2*ratio;
-                    __android_log_print(ANDROID_LOG_DEBUG,"em.ou","angle=%f",angle);
+                    LOG_SYSTEM_OUT("angle=%f",angle);
                     translateM2(bones[index].getLocalMatWithAppend(),bones[index].getLocalMat(),appendParentLocal[12]*ratio,appendParentLocal[13]*ratio,appendParentLocal[14]*ratio);
                     rotateM(bones[index].getLocalMatWithAppend(), (float) (angle * RAD_TO_DEG), vecTmp[1], vecTmp[2], vecTmp[3]);
                 }
@@ -566,12 +438,36 @@ void PMXReader::updateBoneMats() {
     }
     calculateIK();
 }
-void PMXReader::draw(const float *viewMat, const float *projectionMat, EnvironmentLight* environmentLight) {
+void PMXReader::updateModelState() {
     if(newBoneTransform)
     {
         updateBoneMats();
         newBoneTransform= false;
     }
+    if(vertexChangeStart != vertexChangeEnd)
+    {
+        vertexChangeStart=(vertexChangeStart<<2)-vertexChangeStart;
+        vertexChangeEnd=(vertexChangeEnd<<2)-vertexChangeEnd;
+        glBindBuffer(GL_ARRAY_BUFFER,bufferIds[0]);
+        unsigned int size=vertexChangeEnd-vertexChangeStart;
+        glBufferSubData(GL_ARRAY_BUFFER,vertexChangeStart<<2,size<<2,vertexCoordinates+vertexChangeStart);
+        glBindBuffer(GL_ARRAY_BUFFER,0);
+        vertexChangeStart=vertexChangeEnd=0xffffffff;
+    }
+    if(uvChangeStart != uvChangeEnd)
+    {
+        uvChangeStart<<=1;
+        uvChangeEnd=uvChangeEnd<<1;
+        glBindBuffer(GL_ARRAY_BUFFER,bufferIds[3]);
+        unsigned int size=uvChangeEnd-uvChangeStart;
+        glBufferSubData(GL_ARRAY_BUFFER,uvChangeStart<<2,size<<2,uvs+uvChangeStart);
+        glBindBuffer(GL_ARRAY_BUFFER,0);
+        uvChangeStart=uvChangeEnd=0xffffffff;
+    }
+}
+void PMXReader::draw(const float *viewMat, const float *projectionMat, EnvironmentLight* environmentLight) {
+    updateModelState();
+
     glUseProgram(mProgram);
 
     glEnableVertexAttribArray(mPositionHandle);
@@ -630,6 +526,8 @@ void PMXReader::draw(const float *viewMat, const float *projectionMat, Environme
                 glBindTexture(GL_TEXTURE_2D,textures[materials[materialIndices[i]].getSphereIndex()].getTextureId());
             }
             glUniform3i(mTextureModesHandle,materials[materialIndices[i]].getTextureState(),materials[materialIndices[i]].getSphereState(),samplers[2] >= 0 && materials[materialIndices[i]].acceptShadow());
+            glUniform4fv(mTextureCoefficientHandle,1,materials[materialIndices[i]].getTextureCoefficient());
+            glUniform4fv(mSphereCoefficientHandle,1,materials[materialIndices[i]].getSphereCoefficient());
             if(materials[materialIndices[i]].isDoubleSided())glDisable(GL_CULL_FACE);
             else glEnable(GL_CULL_FACE);
             glDrawElements(materials[materialIndices[i]].getDrawMode(),materials[materialIndices[i]].getIndexCount(),GL_UNSIGNED_INT,(const void*)materials[materialIndices[i]].getOffset());
@@ -645,11 +543,8 @@ void PMXReader::draw(const float *viewMat, const float *projectionMat, Environme
     glDisableVertexAttribArray(mPositionHandle);
 }
 void PMXReader::drawShadowMap(EnvironmentLight* environmentLight) {
-    if(newBoneTransform)
-    {
-        updateBoneMats();
-        newBoneTransform= false;
-    }
+    updateModelState();
+
     glUseProgram(mShadowProgram);
 
     glEnableVertexAttribArray(mShadowPositionHandle);
@@ -733,7 +628,7 @@ void PMXReader::initShader() {
     mFragmentShader=glCreateShader(GL_FRAGMENT_SHADER);
     int length;
     char *s;
-    int r=loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxVertexShader.fs",&length,&s);
+    loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxVertexShader.fs",&length,&s);
     int ind=-1;
     int lim=length-4;
     for (int i = 0; i < lim; ++i) {
@@ -752,37 +647,39 @@ void PMXReader::initShader() {
         }
         else s[ind+i]=' ';
     }
-    glShaderSource(mVertexShader,1,&s,&length);
+    glShaderSource(mVertexShader,1,(const char**)&s,&length);
     glCompileShader(mVertexShader);
-    __android_log_print(ANDROID_LOG_DEBUG,"em.ou",s,0);
+    LOG_SYSTEM_OUT("%s",s);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxFragmentShader.fs",&length,&s);
-    glShaderSource(mFragmentShader,1,&s,&length);
+    glShaderSource(mFragmentShader,1,(const char**)&s,&length);
     glCompileShader(mFragmentShader);
     delete [] s;
     glAttachShader(mProgram,mVertexShader);
     glAttachShader(mProgram,mFragmentShader);
     glLinkProgram(mProgram);
 
-    mPositionHandle=glGetAttribLocation(mProgram,"aPosition");
-    __android_log_print(ANDROID_LOG_DEBUG,"em.ou","err=%d",glGetError());
-    mNormalHandle=glGetAttribLocation(mProgram,"aNormal");
-    mUVHandle=glGetAttribLocation(mProgram,"aUV");
-    mBonesHandle=glGetAttribLocation(mProgram,"aBones");
-    mWeightsHandle=glGetAttribLocation(mProgram,"aWeights");
+    mPositionHandle= (GLuint) glGetAttribLocation(mProgram, "aPosition");
+    LOG_SYSTEM_OUT("err=%d",glGetError());
+    mNormalHandle= (GLuint) glGetAttribLocation(mProgram, "aNormal");
+    mUVHandle= (GLuint) glGetAttribLocation(mProgram, "aUV");
+    mBonesHandle= (GLuint) glGetAttribLocation(mProgram, "aBones");
+    mWeightsHandle= (GLuint) glGetAttribLocation(mProgram, "aWeights");
 
-    mSunPositionHandle=glGetUniformLocation(mProgram,"uSunPosition");
-    mViewMatHandle=glGetUniformLocation(mProgram,"uViewMat");
-    mProjectionMatHandle=glGetUniformLocation(mProgram,"uProjectionMat");
-    mBoneMatsHandle=glGetUniformLocation(mProgram,"uBoneMats");
-    mSunMatHandle=glGetUniformLocation(mProgram,"uSunMat");
+    mSunPositionHandle= (GLuint) glGetUniformLocation(mProgram, "uSunPosition");
+    mViewMatHandle= (GLuint) glGetUniformLocation(mProgram, "uViewMat");
+    mProjectionMatHandle= (GLuint) glGetUniformLocation(mProgram, "uProjectionMat");
+    mBoneMatsHandle= (GLuint) glGetUniformLocation(mProgram, "uBoneMats");
+    mSunMatHandle= (GLuint) glGetUniformLocation(mProgram, "uSunMat");
 
-    mSunLightStrengthHandle=glGetUniformLocation(mProgram,"uSunLightStrength");
-    mAmbientHandle=glGetUniformLocation(mProgram,"uAmbient");
-    mDiffuseHandle=glGetUniformLocation(mProgram,"uDiffuse");
-    mSpecularHandle=glGetUniformLocation(mProgram,"uSpecular");
-    mSamplersHandle=glGetUniformLocation(mProgram,"uSamplers");
-    mTextureModesHandle=glGetUniformLocation(mProgram,"uTextureModes");
+    mSunLightStrengthHandle= (GLuint) glGetUniformLocation(mProgram, "uSunLightStrength");
+    mAmbientHandle= (GLuint) glGetUniformLocation(mProgram, "uAmbient");
+    mDiffuseHandle= (GLuint) glGetUniformLocation(mProgram, "uDiffuse");
+    mSpecularHandle= (GLuint) glGetUniformLocation(mProgram, "uSpecular");
+    mSamplersHandle= (GLuint) glGetUniformLocation(mProgram, "uSamplers");
+    mTextureModesHandle= (GLuint) glGetUniformLocation(mProgram, "uTextureModes");
+    mTextureCoefficientHandle= (GLuint) glGetUniformLocation(mProgram, "uTextureCoefficient");
+    mSphereCoefficientHandle= (GLuint) glGetUniformLocation(mProgram, "uSphereCoefficient");
 }
 void PMXReader::initShadowMapShader() {
     mShadowProgram=glCreateProgram();
@@ -790,7 +687,7 @@ void PMXReader::initShadowMapShader() {
     mShadowFragmentShader=glCreateShader(GL_FRAGMENT_SHADER);
     int length;
     char *s;
-    int r=loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxShadowVertexShader.fs",&length,&s);
+    loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxShadowVertexShader.fs",&length,&s);
     int ind=-1;
     int lim=length-4;
     for (int i = 0; i < lim; ++i) {
@@ -809,26 +706,339 @@ void PMXReader::initShadowMapShader() {
         }
         else s[ind+i]=' ';
     }
-    glShaderSource(mShadowVertexShader,1,&s,&length);
+    glShaderSource(mShadowVertexShader,1,(const char**)&s,&length);
     glCompileShader(mShadowVertexShader);
-    __android_log_print(ANDROID_LOG_DEBUG,"em.ou",s,0);
+    LOG_SYSTEM_OUT("%s",s);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxShadowFragmentShader.fs",&length,&s);
-    glShaderSource(mShadowFragmentShader,1,&s,&length);
+    glShaderSource(mShadowFragmentShader,1,(const char**)&s,&length);
     glCompileShader(mShadowFragmentShader);
     delete [] s;
     glAttachShader(mShadowProgram,mShadowVertexShader);
     glAttachShader(mShadowProgram,mShadowFragmentShader);
     glLinkProgram(mShadowProgram);
 
-    mShadowPositionHandle=glGetAttribLocation(mShadowProgram,"aPosition");
-    __android_log_print(ANDROID_LOG_DEBUG,"em.ou","err=%d",glGetError());
-    mShadowBonesHandle=glGetAttribLocation(mShadowProgram,"aBones");
-    mShadowWeightHandle=glGetAttribLocation(mShadowProgram,"aWeights");
+    mShadowPositionHandle= (GLuint) glGetAttribLocation(mShadowProgram, "aPosition");
+    LOG_SYSTEM_OUT("err=%d",glGetError());
+    mShadowBonesHandle= (GLuint) glGetAttribLocation(mShadowProgram, "aBones");
+    mShadowWeightHandle= (GLuint) glGetAttribLocation(mShadowProgram, "aWeights");
 
-    mShadowSunMatHandle=glGetUniformLocation(mShadowProgram,"uSunMat");
-    mShadowBoneMatsHandle=glGetUniformLocation(mShadowProgram,"uBoneMats");
+    mShadowSunMatHandle= (GLuint) glGetUniformLocation(mShadowProgram, "uSunMat");
+    mShadowBoneMatsHandle= (GLuint) glGetUniformLocation(mShadowProgram, "uBoneMats");
 }
+
+void PMXReader::readInfo(FILE *file) {
+    char rSize;
+    fread(&rSize, sizeof(char),1,file);
+    fread(&info, sizeof(info),1,file);
+    if(rSize > 8)
+    {
+        fseek(file,rSize-8,SEEK_CUR);
+    }
+    encoding= (MStringEncoding) info.encoding;
+}
+
+void PMXReader::readNameAndDescription(FILE *file) {
+    name=MString::readString(file,encoding);
+    nameE=MString::readString(file,encoding);
+    desc=MString::readString(file,encoding);
+    descE=MString::readString(file,encoding);
+}
+
+void PMXReader::readVerticesAndIndices(FILE *file) {
+    fread(&vertexCount, sizeof(int),1,file);
+    if(vertexCount > 0)
+    {
+        vertexCoordinates=new float[vertexCount*3];
+        normals=new float[vertexCount*3];
+        uvs=new float[vertexCount<<1];
+        vertices=new PMXVertex[vertexCount];
+        for (int i = 0; i < vertexCount; ++i) {
+            vertices[i].read(file,&info,vertexCoordinates+(i<<2)-i,normals+(i<<2)-i,uvs+(i<<1));
+        }
+    }
+    fread(&indexCount, sizeof(int),1,file);
+    faceCount=indexCount/3;
+    indices=new unsigned int[indexCount];
+    for (int i = 0; i < indexCount; ++i) {
+        indices[i]=0;
+        fread(indices+i,info.vertexSize,1,file);
+        if(i%3 == 2)
+        {
+            indices[i]^=indices[i-1];
+            indices[i-1]=indices[i]^indices[i-1];
+            indices[i]^=indices[i-1];
+        }
+    }
+}
+
+void PMXReader::readTextures(FILE *file, const char *filePath) {
+    fread(&textureCount, sizeof(int),1,file);
+    if(textureCount > 0)
+    {
+        textures=new PMXTexture[textureCount];
+        int pathLength=-1;
+        for (int i = 0; ; ++i) {
+            if(filePath[i] == '/')pathLength=i+1;
+            else if(filePath[i] == 0)break;
+        }
+        for (int i = 0; i < textureCount; ++i) {
+            textures[i].read(file,encoding,filePath,pathLength);
+        }
+    }
+    else textures=0;
+}
+
+void PMXReader::readMaterials(FILE *file) {
+    fread(&materialCount, sizeof(int),1,file);
+    if(materialCount > 0)
+    {
+        materials=new PMXMaterial[materialCount];
+        materialIndices=new unsigned int[materialCount];
+        materialDiffuses=new float[materialCount<<2];
+        materialSpecular=new float[materialCount<<2];
+        materialAmbient=new float[(materialCount<<2)-materialCount];
+        materialEdgeColors=new float[materialCount<<2];
+        int lastNoAlphaIndex=0;
+        int lastAlphaIndex=materialCount-1;
+        long offset=0;
+        for (unsigned int i = 0; i < materialCount; ++i) {
+            materials[i].read(file, info.texSize, encoding, materialDiffuses + (i << 2),
+                              materialSpecular + (i << 2),
+                              materialAmbient + (i << 2) - i,
+                              materialEdgeColors + (i << 2));
+            bool hasAlpha=materials[i].getDiffuse()[3] != 1;
+            GLsizei textureIndex=materials[i].getTextureIndex();
+            if(textureIndex < textureCount)
+            {
+                textures[textureIndex].initGLTexture();
+                hasAlpha|=textures[textureIndex].hasAlpha();
+            }
+            GLsizei sphereIndex=materials[i].getSphereIndex();
+            if(sphereIndex < textureCount)textures[sphereIndex].initGLTexture();
+            materials[i].onTextureLoaded(textureIndex < textureCount && textures[textureIndex].getTextureId() != 0,sphereIndex < textureCount && textures[sphereIndex].getTextureId() != 0);
+            materials[i].setOffset(offset<<2);
+            offset+=materials[i].getIndexCount();
+            if(hasAlpha)materialIndices[lastAlphaIndex--]=i;
+            else materialIndices[lastNoAlphaIndex++]=i;
+        }
+        int halfAlphaCount=(materialCount-lastNoAlphaIndex)>>1;
+        for (int i = 0; i < halfAlphaCount; ++i) {
+            materialIndices[materialCount-i-1]^=materialIndices[lastNoAlphaIndex+i];
+            materialIndices[lastNoAlphaIndex+i]=materialIndices[materialCount-i-1]^materialIndices[lastNoAlphaIndex+i];
+            materialIndices[materialCount-i-1]^=materialIndices[lastNoAlphaIndex+i];
+        }
+    }
+    else
+    {
+        materials=0;
+        materialDiffuses=0;
+        materialSpecular=0;
+        materialAmbient=0;
+        materialEdgeColors=0;
+    }
+}
+
+void PMXReader::readBones(FILE *file) {
+    fread(&boneCount, sizeof(int),1,file);
+    ikIndices=0;
+    if(boneCount > 0)
+    {
+        bones=new PMXBone[boneCount];
+        bonePositions=new float[boneCount<<2];
+        localBoneMats=new float[boneCount<<4];
+        finalBoneMats=new float[boneCount<<4];
+        boneStateIds =new char[boneCount];
+        currentPassId=0;
+        ikCount=0;
+        for (int i = 0; i < boneCount; ++i) {
+            bones[i].read(file, info.boneSize, UTF8, localBoneMats + (i << 4),
+                          bonePositions + (i << 2));
+            if(bones[i].getBoneIK())ikCount++;
+            boneStateIds[i]=0;
+        }
+    }
+    else
+    {
+        bones=0;
+        bonePositions=0;
+        localBoneMats=0;
+        finalBoneMats=0;
+        boneStateIds=0;
+    }
+}
+
+void PMXReader::readMorphs(FILE *file) {
+    fread(&morphCount, sizeof(int),1,file);
+    if(morphCount > 0)
+    {
+        morphs=new PMXMorph[morphCount];
+        for (int i = 0; i < morphCount; ++i) {
+            morphs[i].read(file,&info);
+        }
+    }
+    else morphs=0;
+}
+
+void PMXReader::performMaterialAddOperation(unsigned int index, PMXMaterialMorphData *data, float f) {
+    PMXMaterial* material=materials+index;
+    
+    const float * initialDiffuse=material->getInitialDiffuse();
+    const float * diffuse=data->getDiffuse();
+    material->setDiffuse(initialDiffuse[0]+diffuse[0]*f,initialDiffuse[1]+diffuse[1]*f,initialDiffuse[2]+diffuse[2]*f,initialDiffuse[3]+diffuse[3]*f);
+
+    const float * initialSpecular=material->getInitialSpecular();
+    const float * specular=data->getSpecular();
+    material->setSpecular(initialSpecular[0]+specular[0]*f,initialSpecular[1]+specular[1]*f,initialSpecular[2]+specular[2]*f,initialSpecular[3]+specular[3]*f);
+
+    const float * initialAmbient=material->getInitialAmbient();
+    const float * ambient=data->getAmbient();
+    material->setAmbient(initialAmbient[0]+ambient[0]*f,initialAmbient[1]+ambient[1]*f,initialAmbient[2]+ambient[2]*f);
+
+    const float * initialEdgeColor=material->getInitialEdgeColor();
+    const float * edgeColor=data->getEdgeColor();
+    material->setEdgeColor(initialEdgeColor[0]+edgeColor[0]*f,initialEdgeColor[1]+edgeColor[1]*f,initialEdgeColor[2]+edgeColor[2]*f,initialEdgeColor[3]+edgeColor[3]*f);
+
+    material->setEdgeSize(material->getInitialEdgeSize()+data->getEdgeSize()*f);
+
+    const float * textureCoefficient=data->getSphereCoefficient();
+    material->setTextureCoefficient(1+textureCoefficient[0]*f,1+textureCoefficient[1]*f,1+textureCoefficient[2]*f,1+textureCoefficient[3]*f);
+
+    const float * sphereCoefficient=data->getSphereCoefficient();
+    material->setSphereCoefficient(1+sphereCoefficient[0]*f,1+sphereCoefficient[1]*f,1+sphereCoefficient[2]*f,1+sphereCoefficient[3]*f);
+}
+
+void PMXReader::performMaterialMulOperation(unsigned int index, PMXMaterialMorphData *data, float f) {
+    PMXMaterial* material=materials+index;
+
+    const float * initialDiffuse=material->getInitialDiffuse();
+    const float * diffuse=data->getDiffuse();
+    material->setDiffuse(initialDiffuse[0]*(1+(diffuse[0]-1)*f),initialDiffuse[1]*(1+(diffuse[1]-1)*f),initialDiffuse[2]*(1+(diffuse[2]-1)*f),initialDiffuse[3]*(1+(diffuse[3]-1)*f));
+
+    const float * initialSpecular=material->getInitialSpecular();
+    const float * specular=data->getSpecular();
+    material->setSpecular(initialSpecular[0]*(1+(specular[0]-1)*f),initialSpecular[1]*(1+(specular[1]-1)*f),initialSpecular[2]*(1+(specular[2]-1)*f),initialSpecular[3]*(1+(specular[3]-1)*f));
+
+    const float * initialAmbient=material->getInitialAmbient();
+    const float * ambient=data->getAmbient();
+    material->setAmbient(initialAmbient[0]*(1+(ambient[0]-1)*f),initialAmbient[1]*(1+(ambient[1]-1)*f),initialAmbient[2]*(1+(ambient[2]-1)*f));
+
+    const float * initialEdgeColor=material->getInitialEdgeColor();
+    const float * edgeColor=data->getEdgeColor();
+    material->setEdgeColor(initialEdgeColor[0]*(1+(edgeColor[0]-1)*f),initialEdgeColor[1]*(1+(edgeColor[1]-1)*f),initialEdgeColor[2]*(1+(edgeColor[2]-1)*f),initialEdgeColor[3]*(1+(edgeColor[3]-1)*f));
+
+    material->setEdgeSize(material->getInitialEdgeSize()*(1+(data->getEdgeSize()-1)*f));
+
+    const float * textureCoefficient=data->getSphereCoefficient();
+    material->setTextureCoefficient(1+(textureCoefficient[0]-1)*f,1+(textureCoefficient[1]-1)*f,1+(textureCoefficient[2]-1)*f,1+(textureCoefficient[3]-1)*f);
+
+    const float * sphereCoefficient=data->getSphereCoefficient();
+    material->setSphereCoefficient(1+(sphereCoefficient[0]-1)*f,1+(sphereCoefficient[1]-1)*f,1+(sphereCoefficient[2]-1)*f,1+(sphereCoefficient[3]-1)*f);
+}
+
+void PMXReader::rotateBone(unsigned int index, float a, float x, float y, float z) {
+    bones[index].rotateBy(a,x,y,z);
+    newBoneTransform=true;
+}
+
+void PMXReader::translateBone(unsigned int index, float x, float y, float z) {
+    bones[index].translationBy(x,y,z);
+    newBoneTransform=true;
+}
+
+unsigned int PMXReader::getMorphCount() {
+    return morphCount;
+}
+
+float PMXReader::getMorphFraction(int index) {
+    return morphs[index].getFraction();
+}
+
+void PMXReader::setMorphFraction(int index, float f) {
+    f=clamp(0,1,f);
+    float delta=morphs[index].setFraction(f);
+    int count=morphs[index].getMorphDataCount();
+    switch (morphs[index].getKind())
+    {
+        case 0:
+        case 9:
+            for (int i = 0; i < count; ++i) {
+                PMXGroupMorphData* data= (PMXGroupMorphData *) morphs[index].getDataAt(i);
+                setMorphFraction(data->getIndex(),f*data->getRatio());
+            }
+            break;
+        case 1:
+            for (int i = 0; i < count; ++i) {
+                PMXVertexMorphData* data= (PMXVertexMorphData *) morphs[index].getDataAt(i);
+                const float * offset=data->getOffset();
+                unsigned int vertexIndex=data->getIndex();
+                const float * initialPosition=vertices[vertexIndex].getInitialCoordinate();
+                vertices[vertexIndex].setPosition(initialPosition[0]+offset[0]*f,initialPosition[1]+offset[1]*f,initialPosition[2]+offset[2]*f);
+                if(vertexChangeStart >= vertexCount || vertexIndex < vertexChangeStart)vertexChangeStart=vertexIndex;
+                if(vertexChangeEnd >= vertexCount || vertexIndex+1 > vertexChangeEnd)vertexChangeEnd=vertexIndex+1;
+            }
+            break;
+        case 2:
+            for (int i = 0; i < count; ++i) {
+                PMXBoneMorphData* data= (PMXBoneMorphData *) morphs[index].getDataAt(i);
+                const float * translation=data->getTranslation();
+                translateBone(data->getIndex(),translation[0]*delta,translation[1]*delta,translation[2]*delta);
+                const float * rotation=data->getRotation();
+                if(fabsf(rotation[3]) > 1e-6f)rotateBone(data->getIndex(),rotation[3]*delta,rotation[0],rotation[1],rotation[2]);
+            }
+            break;
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+            for (int i = 0; i < count; ++i) {
+                PMXUVMorphData* data= (PMXUVMorphData *) morphs[index].getDataAt(i);
+                const float * offset=data->getOffset();
+                unsigned int vertexIndex=data->getIndex();
+                const float * initialUV=vertices[vertexIndex].getInitialUV();
+                vertices[vertexIndex].setUV(initialUV[0]+offset[0]*f,initialUV[1]+offset[1]*f);
+                if(uvChangeStart >= vertexCount || vertexIndex < uvChangeStart)uvChangeStart=vertexIndex;
+                if(uvChangeEnd >= vertexCount || vertexIndex+1 > uvChangeEnd)uvChangeEnd=vertexIndex+1;
+            }
+            break;
+        case 8:
+            for (int i = 0; i < count; ++i) {
+                PMXMaterialMorphData* data= (PMXMaterialMorphData *) morphs[index].getDataAt(i);
+                unsigned int materialIndex=data->getIndex();
+                if(materialIndex < materialCount)
+                {
+                    if(data->getOperation() == 1)
+                    {
+                        performMaterialAddOperation(materialIndex,data,f);
+                    }
+                    else
+                    {
+                        performMaterialMulOperation(materialIndex,data,f);
+                    }
+                }
+                else
+                {
+                    if(data->getOperation() == 1)
+                    {
+                        for (unsigned int j = 0; j < materialCount; ++j) {
+                            performMaterialAddOperation(j,data,f);
+                        }
+                    }
+                    else
+                    {
+                        for (unsigned int j = 0; j < materialCount; ++j) {
+                            performMaterialMulOperation(j,data,f);
+                        }
+                    }
+                }
+            }
+            break;
+        default:
+            break;
+    }
+}
+
 PMXReader::~PMXReader() {
     delete name;
     delete nameE;

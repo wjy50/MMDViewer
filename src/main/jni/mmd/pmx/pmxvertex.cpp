@@ -6,6 +6,8 @@
 #include "../../utils/mathutils.h"
 
 PMXVertex::PMXVertex() {
+    initialCoordinate=0;
+    initialUV=0;
     bones=0;
     weights=0;
     sDefVec=0;
@@ -16,7 +18,11 @@ void PMXVertex::read(FILE *file, PMXInfo *info,float* coordinate,float* normal,f
     this->normal=normal;
     this->uv=uv;
     fread(coordinate, sizeof(float),3,file);
+    coordinate[0]*=PMX_MODEL_SCALE;
+    coordinate[1]*=PMX_MODEL_SCALE;
+    coordinate[2]*=-PMX_MODEL_SCALE;
     fread(normal, sizeof(float),3,file);
+    normal[2]=-normal[2];
     fread(uv, sizeof(float),2,file);
     int sk=MIN(info->UVACount,4);
     fseek(file,sk*16,SEEK_CUR);
@@ -87,8 +93,57 @@ void PMXVertex::setBoneAt(int index, unsigned int bone) {
     bones[index]=bone;
 }
 
+const float* PMXVertex::getInitialCoordinate() {
+    if(!initialCoordinate)
+    {
+        initialCoordinate=new float[3];
+        for (int i = 0; i < 3; ++i) {
+            initialCoordinate[i]=coordinate[i];
+        }
+    }
+    return initialCoordinate;
+}
+
+void PMXVertex::setPosition(float x, float y, float z) {
+    if(!initialCoordinate)
+    {
+        initialCoordinate=new float[3];
+        for (int i = 0; i < 3; ++i) {
+            initialCoordinate[i]=coordinate[i];
+        }
+    }
+    coordinate[0]=x;
+    coordinate[1]=y;
+    coordinate[2]=z;
+}
+
+const float* PMXVertex::getInitialUV() {
+    if(!initialUV)
+    {
+        initialUV=new float[2];
+        for (int i = 0; i < 2; ++i) {
+            initialUV[i]=uv[i];
+        }
+    }
+    return initialUV;
+}
+
+void PMXVertex::setUV(float u, float v) {
+    if(!initialUV)
+    {
+        initialUV=new float[2];
+        for (int i = 0; i < 2; ++i) {
+            initialUV[i]=uv[i];
+        }
+    }
+    uv[0]=u;
+    uv[1]=v;
+}
+
 PMXVertex::~PMXVertex() {
     if(bones)delete [] bones;
     if(weights)delete [] weights;
     if(sDefVec)delete [] sDefVec;
+    if(initialCoordinate)delete [] initialCoordinate;
+    if(initialUV)delete [] initialUV;
 }

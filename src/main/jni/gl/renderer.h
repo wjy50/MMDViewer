@@ -31,6 +31,7 @@ public:
     void setSunPosition(float, float, float);
     void setSunLightStrength(float, float, float);
     void addPMXModel(const char* path);
+    PMXReader* getModel();
 
     /*if shadowMapSize is set to 0, shadow map will be disabled*/
     void setShadowMapSize(int);

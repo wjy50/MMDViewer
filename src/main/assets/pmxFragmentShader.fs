@@ -6,6 +6,8 @@ uniform vec4 uDiffuse;
 uniform vec4 uSpecular;
 uniform sampler2D uSamplers[3];//uSamplers[0] == uTexture && uSamplers[1] == uSphereMap
 uniform ivec3 uTextureModes;
+uniform vec4 uTextureCoefficient;
+uniform vec4 uSphereCoefficient;
 
 varying vec3 vPosition;
 varying vec3 vNormal;
@@ -36,9 +38,9 @@ void main()
     vec3 position=normalize(vPosition);
     vec3 normal=normalize(vNormal);
     vec3 sunPosition=normalize(vSunPosition);
-    vec4 textureColor= uTextureModes.x > 0 ? texture2D(uSamplers[0],vUV) : vec4(1.0);
-    if(uTextureModes.y == 1)textureColor.rgb+=texture2D(uSamplers[1],sphereCoordinate(position,normal)).rgb;
-    else if(uTextureModes.y != 0)textureColor*=texture2D(uSamplers[1],sphereCoordinate(position,normal));
+    vec4 textureColor = uTextureCoefficient * (uTextureModes.x > 0 ? texture2D(uSamplers[0],vUV) : vec4(1.0));
+    if(uTextureModes.y == 1)textureColor.rgb+=(uSphereCoefficient*texture2D(uSamplers[1],sphereCoordinate(position,normal))).rgb;
+    else if(uTextureModes.y != 0)textureColor*=texture2D(uSamplers[1],sphereCoordinate(position,normal))*uSphereCoefficient;
     if(textureColor.a < 0.01)discard;
     vec4 diffuse;
     vec3 specular;

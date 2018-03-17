@@ -7,6 +7,8 @@
 
 #include <GLES3/gl3.h>
 
+#define PMX_MODEL_SCALE 0.1f;
+
 typedef struct PMX_INFO{
     unsigned char encoding;
     unsigned char UVACount;

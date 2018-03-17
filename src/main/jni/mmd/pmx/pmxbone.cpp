@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include "pmxbone.h"
+#include "pmxcommon.h"
 #include "../../vector/vector.h"
 #include "../../matrix/matrix.h"
 #include "../../quaternion/quaternion.h"
@@ -30,9 +31,9 @@ void PMXBone::read(FILE *file, size_t boneSize, MStringEncoding encoding, float 
     nameE=MString::readString(file,encoding);
     this->position=position;
     fread(position, sizeof(float),3,file);
-    position[0]*=0.1f;
-    position[1]*=0.1f;
-    position[2]*=-0.1f;
+    position[0]*=PMX_MODEL_SCALE;
+    position[1]*=PMX_MODEL_SCALE;
+    position[2]*=-PMX_MODEL_SCALE;
     position[3]=1;
     parent=0;
     fread(&parent,boneSize,1,file);

@@ -1,8 +1,9 @@
 //
 // Created by wjy50 on 2018/2/5.
 //
-#include <android/log.h>
 #include "renderer.h"
+#include "../utils/debugutils.h"
+
 Renderer::Renderer() {
     camera=0;
     surfaceWidth=surfaceHeight=0;
@@ -27,13 +28,13 @@ void Renderer::setShadowMapSize(int size) {
             glGenFramebuffers(1,&shadowMapFBOHandle);
             if(!shadowMapFBOHandle)
             {
-                __android_log_print(ANDROID_LOG_DEBUG,"em.ou","Failed to generate FBO");
+                LOG_SYSTEM_OUT("%s","Failed to generate FBO");
                 return;
             }
             glGenTextures(1,&shadowMapTextureHandle);
             if(!shadowMapTextureHandle)
             {
-                __android_log_print(ANDROID_LOG_DEBUG,"em.ou","Failed to generate shadow map texture");
+                LOG_SYSTEM_OUT("%s","Failed to generate shadow map texture");
                 glDeleteFramebuffers(GL_FRAMEBUFFER,&shadowMapFBOHandle);
                 shadowMapFBOHandle=0;
                 return;
@@ -49,7 +50,7 @@ void Renderer::setShadowMapSize(int size) {
             glBindTexture(GL_TEXTURE_2D,0);
             if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             {
-                __android_log_print(ANDROID_LOG_DEBUG,"em.ou","Failed to initialize FBO");
+                LOG_SYSTEM_OUT("%s","Failed to initialize FBO");
                 glBindFramebuffer(GL_FRAMEBUFFER,0);
                 glDeleteFramebuffers(1,&shadowMapFBOHandle);
                 glDeleteTextures(1,&shadowMapTextureHandle);
@@ -119,6 +120,10 @@ void Renderer::setCamera(AbsCamera *camera) {
 AbsCamera* Renderer::getCamera()
 {
     return camera;
+}
+
+PMXReader* Renderer::getModel() {
+    return pmx;
 }
 
 void Renderer::addPMXModel(const char *path) {

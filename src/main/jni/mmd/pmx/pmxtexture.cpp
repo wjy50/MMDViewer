@@ -2,9 +2,9 @@
 // Created by wjy50 on 18-3-17.
 //
 
-#include <android/log.h>
 #include "pmxtexture.h"
 #include "../../gl/texture.h"
+#include "../../utils/debugutils.h"
 
 PMXTexture::PMXTexture() {
     path=0;
@@ -21,25 +21,25 @@ void PMXTexture::initGLTexture() {
         int r=loadTexture(path,&image);
         if(r == 0)
         {
-            __android_log_print(ANDROID_LOG_DEBUG,"em.ou","load failed, path=%s",path);
+            LOG_SYSTEM_OUT("load failed, path=%s",path);
             return;
         }
         glGenTextures(1,&textureId);
         if(textureId == 0)
         {
-            __android_log_print(ANDROID_LOG_DEBUG,"em.ou","gen texture failed, path=%s",path);
+            LOG_SYSTEM_OUT("gen texture failed, path=%s",path);
             return;
         }
-        __android_log_print(ANDROID_LOG_DEBUG,"em.ou","%dx%d, path=%s",image.width,image.height,path);
+        LOG_SYSTEM_OUT("%dx%d, path=%s",image.width,image.height,path);
         glBindTexture(GL_TEXTURE_2D,textureId);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
         GLenum format=image.colorType == TEX_ARGB ? GL_RGBA : GL_RGB;
-        __android_log_print(ANDROID_LOG_DEBUG,"em.ou","gen tex err=%d",glGetError());
+        LOG_SYSTEM_OUT("gen tex err=%d",glGetError());
         glTexImage2D(GL_TEXTURE_2D,0,format,image.width,image.height,0,format,GL_UNSIGNED_BYTE,image.data);
-        __android_log_print(ANDROID_LOG_DEBUG,"em.ou","image2d err=%d",glGetError());
+        LOG_SYSTEM_OUT("image2d err=%d",glGetError());
         glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D,0);
         delete [] image.data;

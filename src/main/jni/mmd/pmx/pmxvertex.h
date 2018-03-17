@@ -11,8 +11,10 @@
 class PMXVertex{
 private:
     float * coordinate;
+    float * initialCoordinate;
     float * normal;
     float * uv;
+    float * initialUV;
     //something here (UVA) is ignored while reading
     char deform;
     char boneCount;
@@ -27,6 +29,13 @@ public:
     unsigned int getBoneAt(int index);
     float getWeightAt(int index);
     void setBoneAt(int index, unsigned int bone);
+
+    const float * getInitialCoordinate();
+    void setPosition(float x, float y, float z);
+
+    const float * getInitialUV();
+    void setUV(float u, float v);
+
     ~PMXVertex();
 };
 

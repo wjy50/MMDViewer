@@ -1,5 +1,4 @@
 #include "application.h"
-#include <android/log.h>
 //
 // Created by wjy50 on 2018/2/5.
 //
@@ -9,6 +8,7 @@ Application::Application() {
     renderer->setCamera(defaultCamera);
     renderer->setSunPosition(1,1,1);
     renderer->setSunLightStrength(.7,.7,.7);
+    currentMorph=0;
 }
 Application::~Application() {
     delete renderer;
@@ -23,6 +23,21 @@ void Application::onTouchEvent(int action, float x, float y) {
         case ACTION_DOWN:
             this->x=dx=x;
             this->y=dy=y;
+            if(y+(renderer->getSurfaceHeight()>>4) > renderer->getSurfaceHeight())
+            {
+                switch ((int)x*3/renderer->getSurfaceWidth())
+                {
+                    case 0:
+                        if(--currentMorph > renderer->getModel()->getMorphCount())currentMorph=renderer->getModel()->getMorphCount()-1;
+                        break;
+                    case 2:
+                        if(++currentMorph >= renderer->getModel()->getMorphCount())currentMorph=0;
+                        break;
+                    default:
+                        if(renderer->getModel()->getMorphFraction(currentMorph) == 1)renderer->getModel()->setMorphFraction(currentMorph,0);
+                        else renderer->getModel()->setMorphFraction(currentMorph,1);
+                }
+            }
             break;
         case ACTION_MOVE:
             if(dx < renderer->getSurfaceWidth()>>1)//translate

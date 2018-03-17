@@ -16,6 +16,7 @@ private:
     Renderer* renderer;
     AbsCamera* defaultCamera;
     float dx,dy,x,y;
+    unsigned int currentMorph;
 public:
     Application();
     Renderer* getRenderer();

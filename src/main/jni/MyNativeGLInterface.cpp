@@ -3,7 +3,7 @@
 //
 #include "com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface.h"
 #include "gl/application.h"
-#include <android/log.h>
+#include "utils/debugutils.h"
 
 JNIEXPORT void JNICALL Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeOnSurfaceCreate(JNIEnv * env,jclass c,jlong pApplication)
 {
@@ -41,6 +41,6 @@ Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeAddPMXModel(JNIEnv
 {
     const char *cPath=(*env).GetStringUTFChars(jPath,0);
     ((Application*)pApplication)->getRenderer()->addPMXModel(cPath);
-    __android_log_print(ANDROID_LOG_DEBUG,"em.ou","%s",cPath);
+    LOG_SYSTEM_OUT("%s",cPath);
     (*env).ReleaseStringUTFChars(jPath,cPath);
 }
