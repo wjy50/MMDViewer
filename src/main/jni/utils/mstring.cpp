@@ -3,6 +3,41 @@
 //
 
 #include "mstring.h"
+#include "../iconv/iconv.h"
+
+MString* MString::readString(FILE *file, MStringEncoding encoding) {
+    unsigned int size;
+    fread(&size, sizeof(int),1,file);
+    char * s=new char[size+1];
+    s[size]=0;
+    fread(s, sizeof(char),size,file);
+    if(encoding == UTF16 && size > 0)
+    {
+        iconv_t cd=iconv_open("utf-8","utf-16le");
+        size_t inSize=size;
+        unsigned long bufferSize=size<<1;
+        size_t outSize=bufferSize;
+        char* buffer=new char[bufferSize];
+        char *inBuffer=s;
+        char* outBuffer=buffer;
+        iconv(cd,&inBuffer,&inSize,&outBuffer,&outSize);
+        iconv_close(cd);
+        delete [] s;
+        *outBuffer=0;
+        size=(unsigned int)(outBuffer-buffer);
+        s=new char[size+1];
+        for (int i = size; i-- != 0;) {
+            s[i]=buffer[i];
+        }
+        s[size]=0;
+        delete [] buffer;
+    }
+    for (int j = size; j-- != 0 ;) {
+        if(s[j] == ' ')s[j]=0;
+        else break;
+    }
+    return new MString(s,size);
+}
 
 MString::MString(const char *data) {
     mData=data;

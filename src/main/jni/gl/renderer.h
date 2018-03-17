@@ -7,7 +7,7 @@
 
 #include "scenecamera.h"
 #include "objects/cube.h"
-#include "../mmd/pmxreader.h"
+#include "../mmd/pmx/pmxreader.h"
 
 class Renderer{
 private:

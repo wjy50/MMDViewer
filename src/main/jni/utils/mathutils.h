@@ -9,6 +9,11 @@
 extern "C" {
 #endif
 
+#define CHECK_FLAG(a,b) (((a) & (b)) == (b))
+
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define RAD_TO_DEG (180*M_1_PI)
+
 float clamp(float low, float high, float f);
 
 #ifdef __cplusplus

@@ -28,7 +28,12 @@ add_library( # Sets the name of the library.
              src/main/jni/gl/texture.c
              src/main/jni/gl/environment.cpp
              src/main/jni/matrix/matrix.c
-             src/main/jni/mmd/pmxreader.cpp
+             src/main/jni/mmd/pmx/pmxvertex.cpp
+             src/main/jni/mmd/pmx/pmxtexture.cpp
+             src/main/jni/mmd/pmx/pmxmaterial.cpp
+             src/main/jni/mmd/pmx/pmxbone.cpp
+             src/main/jni/mmd/pmx/pmxmorph.cpp
+             src/main/jni/mmd/pmx/pmxreader.cpp
              src/main/jni/utils/mstring.cpp
              src/main/jni/utils/mathutils.c
              src/main/jni/vector/vector.c
