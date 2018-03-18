@@ -120,7 +120,6 @@ public:
 
     void rotateBy(float a, float x, float y, float z);
     void translationBy(float x, float y, float z);
-    void resetLocal();
 
     ~PMXBone();
 };

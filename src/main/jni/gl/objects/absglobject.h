@@ -11,6 +11,7 @@
 class AbsGLObject{
 public:
     virtual void draw(const float*, const float*, EnvironmentLight*)=0;
+    virtual void updateModelState()=0;
 };
 
 #endif //MMDVIEWER_ABSGLOBJECT_H

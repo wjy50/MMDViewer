@@ -54,21 +54,21 @@ void GLObject::initShader() {
     mProgram=glCreateProgram();
     mVertexShader=glCreateShader(GL_VERTEX_SHADER);
     mFragmentShader=glCreateShader(GL_FRAGMENT_SHADER);
-    int length;
+    size_t length;
     char *s;
-    int r=loadShader("/data/data/com.wjy50.app.mmdviewer/files/simpleVertexShader.vs",&length,&s);
-    glShaderSource(mVertexShader,1,&s,&length);
+    loadShader("/data/data/com.wjy50.app.mmdviewer/files/simpleVertexShader.vs",&length,&s);
+    glShaderSource(mVertexShader,1,(const char**)&s,(int*)&length);
     glCompileShader(mVertexShader);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/simpleFragmentShader.fs",&length,&s);
-    glShaderSource(mFragmentShader,1,&s,&length);
+    glShaderSource(mFragmentShader,1,(const char**)&s,(int*)&length);
     glCompileShader(mFragmentShader);
     delete [] s;
     glAttachShader(mProgram,mVertexShader);
     glAttachShader(mProgram,mFragmentShader);
     glLinkProgram(mProgram);
-    mPositionHandle=glGetAttribLocation(mProgram,"aPosition");
-    mNormalHandle=glGetAttribLocation(mProgram,"aNormal");
+    mPositionHandle= (GLuint) glGetAttribLocation(mProgram, "aPosition");
+    mNormalHandle= (GLuint) glGetAttribLocation(mProgram, "aNormal");
     mSunPositionHandle=glGetUniformLocation(mProgram,"uSunPosition");
     mModelMatHandle=glGetUniformLocation(mProgram,"uModelMat");
     mViewMatHandle=glGetUniformLocation(mProgram,"uViewMat");
@@ -79,6 +79,9 @@ void GLObject::initShader() {
     mDiffuseHandle=glGetUniformLocation(mProgram,"uDiffuse");
     mSpecularHandle=glGetUniformLocation(mProgram,"uSpecular");
     mShininessHandle=glGetUniformLocation(mProgram,"uShininess");
+}
+void GLObject::updateModelState() {
+
 }
 void GLObject::draw(const float * viewMat, const float * projectionMat, EnvironmentLight* environmentLight) {
     glUseProgram(mProgram);

@@ -73,10 +73,24 @@ PMXReader::PMXReader(const char* filePath) {
                     }
                     LOG_SYSTEM_OUT("direct bone count=%d",directBoneCount);
                     unsigned int k=directBoneCount;
+                    selfAppendBoneCount=0;
                     for (int i = 0; i < boneCount; ++i) {
                         if (!boneRecord[i])bones[i].setActualIndex(k++);
+                        if(bones[i].getAppendParent() == i)
+                        {
+                            selfAppendBoneCount++;
+                            bones[i].setAppendFromSelf(true);
+                        }
                     }
                     delete [] boneRecord;
+                    if(selfAppendBoneCount > 0)
+                    {
+                        selfAppendBones=new unsigned int[selfAppendBoneCount];
+                        selfAppendBoneCount=0;
+                        for (unsigned int i = 0; i < boneCount; ++i) {
+                            if(bones[i].isAppendFromSelf())selfAppendBones[selfAppendBoneCount++]=i;
+                        }
+                    }
 
                     for (unsigned int i = 0; i < boneCount; ++i) {
                         unsigned int parent=bones[i].getParent();
@@ -314,7 +328,7 @@ void PMXReader::updateIKMatrix(unsigned int index) {
         unsigned int appendParent=bones[index].getAppendParent();
         float * position=bones[index].getPosition();
         unsigned int parent=bones[index].getParent();
-        if(appendParent < boneCount && appendParent != index)//TODO implement append from self
+        if(appendParent < boneCount && appendParent != index)
         {
             updateIKMatrix(appendParent);
             const float * appendParentLocal=bones[appendParent].getLocalMatWithAppend() ? bones[appendParent].getLocalMatWithAppend() : bones[appendParent].getCurrentMat();
@@ -325,10 +339,10 @@ void PMXReader::updateIKMatrix(unsigned int index) {
             else
             {
                 matrixToQuaternion(vecTmp,appendParentLocal);
+                translateM2(bones[index].getLocalMatWithAppend(),bones[index].getCurrentMat(),appendParentLocal[12],appendParentLocal[13],appendParentLocal[14]);
                 if(fabsf(vecTmp[0]) < 1-1e-6f)
                 {
                     float angle=acosf(vecTmp[0])*2;
-                    translateM2(bones[index].getLocalMatWithAppend(),bones[index].getCurrentMat(),appendParentLocal[12],appendParentLocal[13],appendParentLocal[14]);
                     rotateM(bones[index].getLocalMatWithAppend(), (float) (angle * RAD_TO_DEG), vecTmp[1], vecTmp[2], vecTmp[3]);
                 }
                 else
@@ -375,7 +389,7 @@ void PMXReader::calculateBone(unsigned int index) {
         unsigned int appendParent=bones[index].getAppendParent();
         float * position=bones[index].getPosition();
         unsigned int parent=bones[index].getParent();
-        if(appendParent < boneCount && appendParent != index)//TODO implement append from self
+        if(appendParent < boneCount && appendParent != index)
         {
             calculateBone(appendParent);
             const float * appendParentLocal=bones[appendParent].getLocalMatWithAppend() ? bones[appendParent].getLocalMatWithAppend() : bones[appendParent].getLocalMat();
@@ -387,11 +401,10 @@ void PMXReader::calculateBone(unsigned int index) {
             else
             {
                 matrixToQuaternion(vecTmp,appendParentLocal);
+                translateM2(bones[index].getLocalMatWithAppend(),bones[index].getLocalMat(),appendParentLocal[12]*ratio,appendParentLocal[13]*ratio,appendParentLocal[14]*ratio);
                 if(fabsf(vecTmp[0]) < 1-1e-6f)
                 {
                     float angle=acosf(vecTmp[0])*2*ratio;
-                    LOG_SYSTEM_OUT("angle=%f",angle);
-                    translateM2(bones[index].getLocalMatWithAppend(),bones[index].getLocalMat(),appendParentLocal[12]*ratio,appendParentLocal[13]*ratio,appendParentLocal[14]*ratio);
                     rotateM(bones[index].getLocalMatWithAppend(), (float) (angle * RAD_TO_DEG), vecTmp[1], vecTmp[2], vecTmp[3]);
                 }
                 else
@@ -431,6 +444,38 @@ void PMXReader::calculateBone(unsigned int index) {
         }
     }
 }
+void PMXReader::updateSelfAppend() {
+    for (int i = 0; i < selfAppendBoneCount; ++i) {
+        unsigned int index=selfAppendBones[i];
+        float ratio=bones[index].getAppendRatio();
+        const float * localMat=bones[index].getCurrentMat();
+        float * localAppend=bones[index].getLocalMatWithAppend();
+
+        translateM2(matrixTmp,localAppend,localMat[12]*ratio,localMat[13]*ratio,localMat[14]*ratio);
+        matrixToQuaternion(vecTmp,localMat);
+        if(fabsf(vecTmp[0]) < 1-1e-6f)
+        {
+            float angle=acosf(vecTmp[0])*2*ratio;
+            rotateM(matrixTmp, (float) (angle * RAD_TO_DEG), vecTmp[1], vecTmp[2], vecTmp[3]);
+        }
+
+        floatArrayCopy(matrixTmp,localAppend,16);
+
+        unsigned int parent=bones[index].getParent();
+        const float * position=bones[index].getPosition();
+        if(parent < boneCount && parent != index)
+        {
+            translateM2(matrixTmp,localAppend,-position[0],-position[1],-position[2]);
+            translateMPre(matrixTmp,position[0],position[1],position[2]);
+            multiplyMM(finalBoneMats+(bones[index].getActualIndex()<<4),finalBoneMats+(bones[parent].getActualIndex()<<4),matrixTmp);
+        }
+        else
+        {
+            translateM2(finalBoneMats+(bones[index].getActualIndex()<<4),localAppend,-position[0],-position[1],-position[2]);
+            translateMPre(finalBoneMats+(bones[index].getActualIndex()<<4),position[0],position[1],position[2]);
+        }
+    }
+}
 void PMXReader::updateBoneMats() {
     currentPassId^=1;
     for (unsigned int i = 0; i < boneCount; ++i) {
@@ -441,9 +486,10 @@ void PMXReader::updateBoneMats() {
 void PMXReader::updateModelState() {
     if(newBoneTransform)
     {
-        updateBoneMats();
         newBoneTransform= false;
+        updateBoneMats();
     }
+    updateSelfAppend();
     if(vertexChangeStart != vertexChangeEnd)
     {
         vertexChangeStart=(vertexChangeStart<<2)-vertexChangeStart;
@@ -466,8 +512,6 @@ void PMXReader::updateModelState() {
     }
 }
 void PMXReader::draw(const float *viewMat, const float *projectionMat, EnvironmentLight* environmentLight) {
-    updateModelState();
-
     glUseProgram(mProgram);
 
     glEnableVertexAttribArray(mPositionHandle);
@@ -543,8 +587,6 @@ void PMXReader::draw(const float *viewMat, const float *projectionMat, Environme
     glDisableVertexAttribArray(mPositionHandle);
 }
 void PMXReader::drawShadowMap(EnvironmentLight* environmentLight) {
-    updateModelState();
-
     glUseProgram(mShadowProgram);
 
     glEnableVertexAttribArray(mShadowPositionHandle);
@@ -626,11 +668,11 @@ void PMXReader::initShader() {
     mProgram=glCreateProgram();
     mVertexShader=glCreateShader(GL_VERTEX_SHADER);
     mFragmentShader=glCreateShader(GL_FRAGMENT_SHADER);
-    int length;
+    size_t length;
     char *s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxVertexShader.fs",&length,&s);
     int ind=-1;
-    int lim=length-4;
+    size_t lim=length-4;
     for (int i = 0; i < lim; ++i) {
         if(s[i] == '-' && s[i+1] == '*' && s[i+2] == 'd' && s[i+3] == '-')
         {
@@ -647,12 +689,12 @@ void PMXReader::initShader() {
         }
         else s[ind+i]=' ';
     }
-    glShaderSource(mVertexShader,1,(const char**)&s,&length);
+    glShaderSource(mVertexShader,1,(const char**)&s,(int *)&length);
     glCompileShader(mVertexShader);
     LOG_SYSTEM_OUT("%s",s);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxFragmentShader.fs",&length,&s);
-    glShaderSource(mFragmentShader,1,(const char**)&s,&length);
+    glShaderSource(mFragmentShader,1,(const char**)&s,(int *)&length);
     glCompileShader(mFragmentShader);
     delete [] s;
     glAttachShader(mProgram,mVertexShader);
@@ -666,30 +708,30 @@ void PMXReader::initShader() {
     mBonesHandle= (GLuint) glGetAttribLocation(mProgram, "aBones");
     mWeightsHandle= (GLuint) glGetAttribLocation(mProgram, "aWeights");
 
-    mSunPositionHandle= (GLuint) glGetUniformLocation(mProgram, "uSunPosition");
-    mViewMatHandle= (GLuint) glGetUniformLocation(mProgram, "uViewMat");
-    mProjectionMatHandle= (GLuint) glGetUniformLocation(mProgram, "uProjectionMat");
-    mBoneMatsHandle= (GLuint) glGetUniformLocation(mProgram, "uBoneMats");
-    mSunMatHandle= (GLuint) glGetUniformLocation(mProgram, "uSunMat");
+    mSunPositionHandle= glGetUniformLocation(mProgram, "uSunPosition");
+    mViewMatHandle= glGetUniformLocation(mProgram, "uViewMat");
+    mProjectionMatHandle= glGetUniformLocation(mProgram, "uProjectionMat");
+    mBoneMatsHandle= glGetUniformLocation(mProgram, "uBoneMats");
+    mSunMatHandle= glGetUniformLocation(mProgram, "uSunMat");
 
-    mSunLightStrengthHandle= (GLuint) glGetUniformLocation(mProgram, "uSunLightStrength");
-    mAmbientHandle= (GLuint) glGetUniformLocation(mProgram, "uAmbient");
-    mDiffuseHandle= (GLuint) glGetUniformLocation(mProgram, "uDiffuse");
-    mSpecularHandle= (GLuint) glGetUniformLocation(mProgram, "uSpecular");
-    mSamplersHandle= (GLuint) glGetUniformLocation(mProgram, "uSamplers");
-    mTextureModesHandle= (GLuint) glGetUniformLocation(mProgram, "uTextureModes");
-    mTextureCoefficientHandle= (GLuint) glGetUniformLocation(mProgram, "uTextureCoefficient");
-    mSphereCoefficientHandle= (GLuint) glGetUniformLocation(mProgram, "uSphereCoefficient");
+    mSunLightStrengthHandle= glGetUniformLocation(mProgram, "uSunLightStrength");
+    mAmbientHandle= glGetUniformLocation(mProgram, "uAmbient");
+    mDiffuseHandle= glGetUniformLocation(mProgram, "uDiffuse");
+    mSpecularHandle= glGetUniformLocation(mProgram, "uSpecular");
+    mSamplersHandle= glGetUniformLocation(mProgram, "uSamplers");
+    mTextureModesHandle= glGetUniformLocation(mProgram, "uTextureModes");
+    mTextureCoefficientHandle= glGetUniformLocation(mProgram, "uTextureCoefficient");
+    mSphereCoefficientHandle= glGetUniformLocation(mProgram, "uSphereCoefficient");
 }
 void PMXReader::initShadowMapShader() {
     mShadowProgram=glCreateProgram();
     mShadowVertexShader=glCreateShader(GL_VERTEX_SHADER);
     mShadowFragmentShader=glCreateShader(GL_FRAGMENT_SHADER);
-    int length;
+    size_t length;
     char *s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxShadowVertexShader.fs",&length,&s);
     int ind=-1;
-    int lim=length-4;
+    size_t lim=length-4;
     for (int i = 0; i < lim; ++i) {
         if(s[i] == '-' && s[i+1] == '*' && s[i+2] == 'd' && s[i+3] == '-')
         {
@@ -706,12 +748,12 @@ void PMXReader::initShadowMapShader() {
         }
         else s[ind+i]=' ';
     }
-    glShaderSource(mShadowVertexShader,1,(const char**)&s,&length);
+    glShaderSource(mShadowVertexShader,1,(const char**)&s,(int*)&length);
     glCompileShader(mShadowVertexShader);
     LOG_SYSTEM_OUT("%s",s);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxShadowFragmentShader.fs",&length,&s);
-    glShaderSource(mShadowFragmentShader,1,(const char**)&s,&length);
+    glShaderSource(mShadowFragmentShader,1,(const char**)&s,(int*)&length);
     glCompileShader(mShadowFragmentShader);
     delete [] s;
     glAttachShader(mShadowProgram,mShadowVertexShader);
@@ -723,8 +765,8 @@ void PMXReader::initShadowMapShader() {
     mShadowBonesHandle= (GLuint) glGetAttribLocation(mShadowProgram, "aBones");
     mShadowWeightHandle= (GLuint) glGetAttribLocation(mShadowProgram, "aWeights");
 
-    mShadowSunMatHandle= (GLuint) glGetUniformLocation(mShadowProgram, "uSunMat");
-    mShadowBoneMatsHandle= (GLuint) glGetUniformLocation(mShadowProgram, "uBoneMats");
+    mShadowSunMatHandle= glGetUniformLocation(mShadowProgram, "uSunMat");
+    mShadowBoneMatsHandle= glGetUniformLocation(mShadowProgram, "uBoneMats");
 }
 
 void PMXReader::readInfo(FILE *file) {
@@ -852,7 +894,7 @@ void PMXReader::readBones(FILE *file) {
         currentPassId=0;
         ikCount=0;
         for (int i = 0; i < boneCount; ++i) {
-            bones[i].read(file, info.boneSize, UTF8, localBoneMats + (i << 4),
+            bones[i].read(file, info.boneSize, encoding, localBoneMats + (i << 4),
                           bonePositions + (i << 2));
             if(bones[i].getBoneIK())ikCount++;
             boneStateIds[i]=0;
@@ -865,6 +907,7 @@ void PMXReader::readBones(FILE *file) {
         localBoneMats=0;
         finalBoneMats=0;
         boneStateIds=0;
+        selfAppendBones=0;
     }
 }
 
@@ -948,6 +991,10 @@ void PMXReader::translateBone(unsigned int index, float x, float y, float z) {
 
 unsigned int PMXReader::getMorphCount() {
     return morphCount;
+}
+
+const char* PMXReader::getMorphName(int index) {
+    return morphs[index].getName();
 }
 
 float PMXReader::getMorphFraction(int index) {
@@ -1063,4 +1110,5 @@ PMXReader::~PMXReader() {
     if(ikIndices)delete [] ikIndices;
     if(boneStateIds)delete [] boneStateIds;
     if(morphs)delete [] morphs;
+    if(selfAppendBones)delete [] selfAppendBones;
 }

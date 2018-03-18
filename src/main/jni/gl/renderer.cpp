@@ -91,6 +91,8 @@ void Renderer::onSurfaceChanged(int width, int height) {
     }
 }
 void Renderer::onDrawFrame() {
+    if(pmx)pmx->updateModelState();
+
     if(shadowMapSize != 0 && shadowMapFBOHandle != 0)
     {
         glBindFramebuffer(GL_FRAMEBUFFER,shadowMapFBOHandle);

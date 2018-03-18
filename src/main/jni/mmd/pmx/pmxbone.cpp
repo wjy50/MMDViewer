@@ -2,12 +2,10 @@
 // Created by wjy50 on 18-3-17.
 //
 
-#include <math.h>
 #include "pmxbone.h"
 #include "pmxcommon.h"
 #include "../../vector/vector.h"
 #include "../../matrix/matrix.h"
-#include "../../quaternion/quaternion.h"
 #include "../../utils/mathutils.h"
 
 /*implementation of PMXBone*/
@@ -180,6 +178,7 @@ unsigned int PMXBone::getChildAt(int index) {
 
 void PMXBone::setAppendFromSelf(bool appendFromSelf) {
     this->appendFromSelf=appendFromSelf;
+    if(appendFromSelf)setIdentityM(localMatWithAppend);
 }
 
 bool PMXBone::isAppendFromSelf() {
@@ -203,22 +202,11 @@ const char* PMXBone::getName() {
 }
 
 void PMXBone::rotateBy(float a, float x, float y, float z) {
-    rotateM(ikMat ? ikMat : localMat,a,x,y,z);
-    //TODO implement append from self
+    rotateM(localMat,a,x,y,z);
 }
 
 void PMXBone::translationBy(float x, float y, float z) {
-    translateM(ikMat ? ikMat : localMat,x,y,z);
-    //TODO implement append from self
-}
-
-void PMXBone::resetLocal() {
-    float quaternion[4];
-    matrixToQuaternion(quaternion,ikMat ? ikMat : localMat);
-    float angle=(float) acos(quaternion[0])*2;
-    if(fabsf(angle) > 1-1e-6f)rotateBy(-angle,quaternion[1],quaternion[2],quaternion[3]);
-    const float * mat=getCurrentMat();
-    translationBy(-mat[12],-mat[13],-mat[14]);
+    translateM(localMat,x,y,z);
 }
 
 PMXBone::~PMXBone() {

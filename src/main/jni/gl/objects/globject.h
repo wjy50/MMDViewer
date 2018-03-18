@@ -23,7 +23,7 @@ private:
     GLuint mProgram;
     GLuint mVertexShader,mFragmentShader;
 
-    GLint mPositionHandle,mNormalHandle;
+    GLuint mPositionHandle,mNormalHandle;
     GLint mSunPositionHandle;
     GLint mModelMatHandle,mViewMatHandle,mProjectionMatHandle;
 
@@ -50,6 +50,7 @@ public:
     void setShininess(float);
 
     void draw(const float*, const float*, EnvironmentLight*);
+    void updateModelState();
     ~GLObject();
 };
 

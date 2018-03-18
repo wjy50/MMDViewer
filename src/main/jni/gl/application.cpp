@@ -1,4 +1,6 @@
 #include "application.h"
+#include "../utils/debugutils.h"
+
 //
 // Created by wjy50 on 2018/2/5.
 //
@@ -34,9 +36,10 @@ void Application::onTouchEvent(int action, float x, float y) {
                         if(++currentMorph >= renderer->getModel()->getMorphCount())currentMorph=0;
                         break;
                     default:
-                        if(renderer->getModel()->getMorphFraction(currentMorph) == 1)renderer->getModel()->setMorphFraction(currentMorph,0);
-                        else renderer->getModel()->setMorphFraction(currentMorph,1);
+                        if(renderer->getModel()->getMorphFraction(currentMorph) == 0)renderer->getModel()->setMorphFraction(currentMorph,1);
+                        else renderer->getModel()->setMorphFraction(currentMorph,0);
                 }
+                LOG_SYSTEM_OUT("name=%s",renderer->getModel()->getMorphName(currentMorph));
             }
             break;
         case ACTION_MOVE:

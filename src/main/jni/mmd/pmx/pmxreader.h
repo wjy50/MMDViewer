@@ -38,13 +38,13 @@ private:
     GLuint mVertexShader,mFragmentShader;
 
     GLuint mPositionHandle,mNormalHandle,mUVHandle,mBonesHandle,mWeightsHandle;
-    GLuint mSunPositionHandle;
-    GLuint mViewMatHandle,mProjectionMatHandle,mBoneMatsHandle,mSunMatHandle;
+    GLint mSunPositionHandle;
+    GLint mViewMatHandle,mProjectionMatHandle,mBoneMatsHandle,mSunMatHandle;
 
-    GLuint mSunLightStrengthHandle;
-    GLuint mAmbientHandle,mDiffuseHandle,mSpecularHandle;
-    GLuint mSamplersHandle,mTextureModesHandle;
-    GLuint mTextureCoefficientHandle,mSphereCoefficientHandle;
+    GLint mSunLightStrengthHandle;
+    GLint mAmbientHandle,mDiffuseHandle,mSpecularHandle;
+    GLint mSamplersHandle,mTextureModesHandle;
+    GLint mTextureCoefficientHandle,mSphereCoefficientHandle;
 
     GLint samplers[3]={0,1,0};
 
@@ -85,14 +85,14 @@ private:
     GLuint mShadowProgram;
     GLuint mShadowVertexShader,mShadowFragmentShader;
     GLuint mShadowPositionHandle,mShadowBonesHandle,mShadowWeightHandle;
-    GLuint mShadowSunMatHandle,mShadowBoneMatsHandle;
+    GLint mShadowSunMatHandle,mShadowBoneMatsHandle;
 
     unsigned int ikCount;
     unsigned int * ikIndices;
 
     void updateBoneMats();
     void invalidateChildren(unsigned int index);
-    void updateModelState();
+    void updateSelfAppend();
 
     void readInfo(FILE *file);
     void readNameAndDescription(FILE *file);
@@ -107,12 +107,16 @@ private:
 
     unsigned int vertexChangeStart,vertexChangeEnd;
     unsigned int uvChangeStart,uvChangeEnd;
+
+    unsigned int * selfAppendBones;
+    int selfAppendBoneCount;
 public:
     PMXReader(const char* filePath);
     void genVertexBuffers();
     void genBoneBuffers();
     void initShader();
     void initShadowMapShader();
+    void updateModelState();
     void draw(const float*, const float*, EnvironmentLight*);
     void drawShadowMap(EnvironmentLight*);
 
@@ -123,6 +127,7 @@ public:
     void translateBone(unsigned int index, float x, float y, float z);
 
     unsigned int getMorphCount();
+    const char * getMorphName(int index);
 
     ~PMXReader();
 };
