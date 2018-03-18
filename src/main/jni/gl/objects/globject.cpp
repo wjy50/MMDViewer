@@ -54,14 +54,14 @@ void GLObject::initShader() {
     mProgram=glCreateProgram();
     mVertexShader=glCreateShader(GL_VERTEX_SHADER);
     mFragmentShader=glCreateShader(GL_FRAGMENT_SHADER);
-    size_t length;
+    int length;
     char *s;
-    loadShader("/data/data/com.wjy50.app.mmdviewer/files/simpleVertexShader.vs",&length,&s);
-    glShaderSource(mVertexShader,1,(const char**)&s,(int*)&length);
+    int r=loadShader("/data/data/com.wjy50.app.mmdviewer/files/simpleVertexShader.vs",&length,&s);
+    glShaderSource(mVertexShader,1,(const char**)&s,&length);
     glCompileShader(mVertexShader);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/simpleFragmentShader.fs",&length,&s);
-    glShaderSource(mFragmentShader,1,(const char**)&s,(int*)&length);
+    glShaderSource(mFragmentShader,1,(const char**)&s,&length);
     glCompileShader(mFragmentShader);
     delete [] s;
     glAttachShader(mProgram,mVertexShader);

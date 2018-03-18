@@ -445,6 +445,9 @@ void PMXReader::calculateBone(unsigned int index) {
     }
 }
 void PMXReader::updateSelfAppend() {
+    for (unsigned int i = 0; i < selfAppendBoneCount; ++i) {
+        invalidateChildren(selfAppendBones[i]);
+    }
     for (int i = 0; i < selfAppendBoneCount; ++i) {
         unsigned int index=selfAppendBones[i];
         float ratio=bones[index].getAppendRatio();
@@ -474,6 +477,10 @@ void PMXReader::updateSelfAppend() {
             translateM2(finalBoneMats+(bones[index].getActualIndex()<<4),localAppend,-position[0],-position[1],-position[2]);
             translateMPre(finalBoneMats+(bones[index].getActualIndex()<<4),position[0],position[1],position[2]);
         }
+        boneStateIds[index]=currentPassId;
+    }
+    for (unsigned int i = 0; i < boneCount; ++i) {
+        if(boneStateIds[i] != currentPassId)updateIKMatrix(i);
     }
 }
 void PMXReader::updateBoneMats() {
@@ -489,7 +496,7 @@ void PMXReader::updateModelState() {
         newBoneTransform= false;
         updateBoneMats();
     }
-    updateSelfAppend();
+    if(selfAppendBoneCount > 0)updateSelfAppend();
     if(vertexChangeStart != vertexChangeEnd)
     {
         vertexChangeStart=(vertexChangeStart<<2)-vertexChangeStart;
@@ -668,11 +675,11 @@ void PMXReader::initShader() {
     mProgram=glCreateProgram();
     mVertexShader=glCreateShader(GL_VERTEX_SHADER);
     mFragmentShader=glCreateShader(GL_FRAGMENT_SHADER);
-    size_t length;
+    int length;
     char *s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxVertexShader.fs",&length,&s);
     int ind=-1;
-    size_t lim=length-4;
+    int lim=length-4;
     for (int i = 0; i < lim; ++i) {
         if(s[i] == '-' && s[i+1] == '*' && s[i+2] == 'd' && s[i+3] == '-')
         {
@@ -689,12 +696,12 @@ void PMXReader::initShader() {
         }
         else s[ind+i]=' ';
     }
-    glShaderSource(mVertexShader,1,(const char**)&s,(int *)&length);
+    glShaderSource(mVertexShader,1,(const char**)&s,&length);
     glCompileShader(mVertexShader);
     LOG_SYSTEM_OUT("%s",s);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxFragmentShader.fs",&length,&s);
-    glShaderSource(mFragmentShader,1,(const char**)&s,(int *)&length);
+    glShaderSource(mFragmentShader,1,(const char**)&s,&length);
     glCompileShader(mFragmentShader);
     delete [] s;
     glAttachShader(mProgram,mVertexShader);
@@ -727,11 +734,11 @@ void PMXReader::initShadowMapShader() {
     mShadowProgram=glCreateProgram();
     mShadowVertexShader=glCreateShader(GL_VERTEX_SHADER);
     mShadowFragmentShader=glCreateShader(GL_FRAGMENT_SHADER);
-    size_t length;
+    int length;
     char *s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxShadowVertexShader.fs",&length,&s);
     int ind=-1;
-    size_t lim=length-4;
+    int lim=length-4;
     for (int i = 0; i < lim; ++i) {
         if(s[i] == '-' && s[i+1] == '*' && s[i+2] == 'd' && s[i+3] == '-')
         {
@@ -748,12 +755,12 @@ void PMXReader::initShadowMapShader() {
         }
         else s[ind+i]=' ';
     }
-    glShaderSource(mShadowVertexShader,1,(const char**)&s,(int*)&length);
+    glShaderSource(mShadowVertexShader,1,(const char**)&s,&length);
     glCompileShader(mShadowVertexShader);
     LOG_SYSTEM_OUT("%s",s);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxShadowFragmentShader.fs",&length,&s);
-    glShaderSource(mShadowFragmentShader,1,(const char**)&s,(int*)&length);
+    glShaderSource(mShadowFragmentShader,1,(const char**)&s,&length);
     glCompileShader(mShadowFragmentShader);
     delete [] s;
     glAttachShader(mShadowProgram,mShadowVertexShader);

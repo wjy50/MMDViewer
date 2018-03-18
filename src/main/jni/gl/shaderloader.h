@@ -5,13 +5,11 @@
 #ifndef MMDVIEWER_SHADERLOADER_H
 #define MMDVIEWER_SHADERLOADER_H
 
-#include <stdint.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int loadShader(const char* fileName, size_t * ptrLength, char** ptrResult);
+int loadShader(const char* fileName, int* ptrLength, char** ptrResult);
 
 #ifdef __cplusplus
 };

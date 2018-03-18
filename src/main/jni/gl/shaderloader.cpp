@@ -3,7 +3,7 @@
 //
 // Created by wjy50 on 2018/2/6.
 //
-int loadShader(const char* fileName, size_t * ptrLength, char** ptrResult)
+int loadShader(const char* fileName, int* ptrLength, char** ptrResult)
 {
     FILE* file=fopen(fileName,"rb");
     if(file)
