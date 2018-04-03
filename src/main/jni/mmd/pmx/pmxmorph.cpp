@@ -153,8 +153,8 @@ PMXMorph::PMXMorph() {
 }
 
 void PMXMorph::read(FILE *file, PMXInfo *info) {
-    name=MString::readString(file, (MStringEncoding) info->encoding);
-    nameE=MString::readString(file, (MStringEncoding) info->encoding);
+    name= MString::readString(file, (MStringEncoding) info->encoding, UTF_8);
+    nameE= MString::readString(file, (MStringEncoding) info->encoding, UTF_8);
     fread(&panel, sizeof(char),1,file);
     fread(&kind, sizeof(char),1,file);
     fread(&count, sizeof(int),1,file);

@@ -34,6 +34,12 @@ add_library( # Sets the name of the library.
              src/main/jni/mmd/pmx/pmxbone.cpp
              src/main/jni/mmd/pmx/pmxmorph.cpp
              src/main/jni/mmd/pmx/pmxreader.cpp
+             src/main/jni/mmd/vmd/vmdreader.cpp
+             src/main/jni/mmd/vmd/bonekeyframe.cpp
+             src/main/jni/mmd/vmd/morphkeyframe.cpp
+             src/main/jni/mmd/vmd/camerakeyframe.cpp
+             src/main/jni/mmd/vmd/lightkeyframe.cpp
+             src/main/jni/mmd/vmd/ikkeyframe.cpp
              src/main/jni/utils/mstring.cpp
              src/main/jni/utils/mathutils.c
              src/main/jni/vector/vector.c

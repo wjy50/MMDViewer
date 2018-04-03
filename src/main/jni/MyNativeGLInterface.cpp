@@ -28,7 +28,7 @@ JNIEXPORT jlong JNICALL Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_
 
 JNIEXPORT void JNICALL Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeStopApplication(JNIEnv *env,jclass c,jlong pApplication)
 {
-    delete ((Application*)pApplication);
+    if(pApplication)delete ((Application*)pApplication);
 }
 JNIEXPORT void JNICALL
 Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeOnTouchEvent(JNIEnv* env,jclass c,jlong pApplication,jint action,jfloat x,jfloat y)
@@ -41,6 +41,6 @@ Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeAddPMXModel(JNIEnv
 {
     const char *cPath=(*env).GetStringUTFChars(jPath,0);
     ((Application*)pApplication)->getRenderer()->addPMXModel(cPath);
-    LOG_SYSTEM_OUT("%s",cPath);
+    LOG_PRINTLN(cPath);
     (*env).ReleaseStringUTFChars(jPath,cPath);
 }

@@ -39,7 +39,7 @@ void Application::onTouchEvent(int action, float x, float y) {
                         if(renderer->getModel()->getMorphFraction(currentMorph) == 0)renderer->getModel()->setMorphFraction(currentMorph,1);
                         else renderer->getModel()->setMorphFraction(currentMorph,0);
                 }
-                LOG_SYSTEM_OUT("name=%s",renderer->getModel()->getMorphName(currentMorph));
+                LOG_PRINTF("name=%s",renderer->getModel()->getMorphName(currentMorph));
             }
             break;
         case ACTION_MOVE:

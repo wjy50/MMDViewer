@@ -3,6 +3,7 @@ package com.wjy50.app.mmdviewer;
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Environment;
+import android.view.WindowManager;
 
 import com.wjy50.app.mmdviewer.gl.MyGLSurfaceView;
 
@@ -19,6 +20,7 @@ public class GLActivity extends Activity {
         if(getIntent().hasExtra("path"))surfaceView.addPMXModel(getIntent().getStringExtra("path"));
         else surfaceView.addPMXModel(Environment.getExternalStorageDirectory()+"/TDA China Dress Long Hair Luo Tianyi Canary/TDA China Dress Luo Tianyi Canary Ver1.00 [Silver].pmx");
         setContentView(surfaceView);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override

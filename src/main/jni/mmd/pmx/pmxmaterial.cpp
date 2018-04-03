@@ -27,8 +27,8 @@ PMXMaterial::read(FILE *file, size_t textureSize, MStringEncoding encoding, floa
     this->specular=specular;
     this->ambient=ambient;
     this->edgeColor=edgeColor;
-    name= MString::readString(file,encoding);
-    nameE= MString::readString(file,encoding);
+    name= MString::readString(file, encoding, UTF_8);
+    nameE= MString::readString(file, encoding, UTF_8);
     fread(diffuse, sizeof(float),4,file);
     fread(specular, sizeof(float),4,file);
     fread(ambient, sizeof(float),3,file);
@@ -47,11 +47,11 @@ PMXMaterial::read(FILE *file, size_t textureSize, MStringEncoding encoding, floa
     toonI=0;
     if(sharedToon == 0)fread(&toonI,textureSize,1,file);
     else fread(&toonI, sizeof(char),1,file);
-    memo=MString::readString(file,encoding);
+    memo= MString::readString(file, encoding, UTF_8);
     fread(&indexCount, sizeof(GLsizei),1,file);
     doubleSided=CHECK_FLAG(flags,DOUBLE_SIDED);
-    shadow=CHECK_FLAG(flags,SHADOW);
-    mThrowsShadow=CHECK_FLAG(flags,SELF_SHADOW_MAP);
+    groundShadow=CHECK_FLAG(flags,GROUND_SHADOW);
+    mCastShadow=CHECK_FLAG(flags,SELF_SHADOW_MAP);
     mAcceptShadow=CHECK_FLAG(flags,SELF_SHADOW);
     if(CHECK_FLAG(flags,DRAW_MODE_LINE))drawMode=GL_LINES;
     else if(CHECK_FLAG(flags,DRAW_MODE_POINT))drawMode=GL_POINTS;
@@ -119,8 +119,8 @@ void PMXMaterial::onTextureLoaded(bool isTextureSuccessful, bool isSphereSuccess
     }
 }
 
-bool PMXMaterial::throwsShadow() {
-    return mThrowsShadow;
+bool PMXMaterial::castShadow() {
+    return mCastShadow;
 }
 
 bool PMXMaterial::acceptShadow() {

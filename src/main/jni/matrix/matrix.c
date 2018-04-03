@@ -4,12 +4,7 @@
 #include "matrix.h"
 #include "../vector/vector.h"
 #include <math.h>
-#include <string.h>
 
-void floatArrayCopy(const float * src, float * dest,int count)
-{
-    memcpy(dest,src, sizeof(float)*count);
-}
 #define MULTIPLY_MATRIX_ONE
 void multiplyMM(float* rm, const float* lhs, const float* rhs)
 {

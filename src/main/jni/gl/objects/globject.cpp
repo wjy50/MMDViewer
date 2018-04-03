@@ -56,7 +56,7 @@ void GLObject::initShader() {
     mFragmentShader=glCreateShader(GL_FRAGMENT_SHADER);
     int length;
     char *s;
-    int r=loadShader("/data/data/com.wjy50.app.mmdviewer/files/simpleVertexShader.vs",&length,&s);
+    loadShader("/data/data/com.wjy50.app.mmdviewer/files/simpleVertexShader.vs",&length,&s);
     glShaderSource(mVertexShader,1,(const char**)&s,&length);
     glCompileShader(mVertexShader);
     delete[] s;

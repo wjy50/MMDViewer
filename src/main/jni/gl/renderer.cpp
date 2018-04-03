@@ -28,13 +28,13 @@ void Renderer::setShadowMapSize(int size) {
             glGenFramebuffers(1,&shadowMapFBOHandle);
             if(!shadowMapFBOHandle)
             {
-                LOG_SYSTEM_OUT("%s","Failed to generate FBO");
+                LOG_PRINTLN("Failed to generate FBO");
                 return;
             }
             glGenTextures(1,&shadowMapTextureHandle);
             if(!shadowMapTextureHandle)
             {
-                LOG_SYSTEM_OUT("%s","Failed to generate shadow map texture");
+                LOG_PRINTLN("Failed to generate shadow map texture");
                 glDeleteFramebuffers(GL_FRAMEBUFFER,&shadowMapFBOHandle);
                 shadowMapFBOHandle=0;
                 return;
@@ -50,7 +50,7 @@ void Renderer::setShadowMapSize(int size) {
             glBindTexture(GL_TEXTURE_2D,0);
             if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             {
-                LOG_SYSTEM_OUT("%s","Failed to initialize FBO");
+                LOG_PRINTLN("Failed to initialize FBO");
                 glBindFramebuffer(GL_FRAMEBUFFER,0);
                 glDeleteFramebuffers(1,&shadowMapFBOHandle);
                 glDeleteTextures(1,&shadowMapTextureHandle);
@@ -135,5 +135,6 @@ void Renderer::addPMXModel(const char *path) {
 }
 Renderer::~Renderer() {
     if(pmx)delete pmx;
+    pmx=0;
     delete environmentLight;
 }

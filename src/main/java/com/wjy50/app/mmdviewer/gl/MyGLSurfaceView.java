@@ -53,7 +53,8 @@ public class MyGLSurfaceView extends GLSurfaceView {
 
     @Override
     public void onPause() {
-        NativeGLInterface.nativeStopApplication(applicationHandle);
+        if(applicationHandle != 0)NativeGLInterface.nativeStopApplication(applicationHandle);
+        applicationHandle=0;
         super.onPause();
     }
 

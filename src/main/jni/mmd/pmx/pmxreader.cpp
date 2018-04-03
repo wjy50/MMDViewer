@@ -13,7 +13,7 @@
 
 PMXReader::PMXReader(const char* filePath) {
     FILE* file=fopen(filePath,"rb");
-    LOG_SYSTEM_OUT("file=%p",file);
+    LOG_PRINTF("file=%p",file);
     PMXHeader header;
     fread(&header, sizeof(PMXHeader),1,file);
     switch (header.magic&0xffffff)
@@ -21,7 +21,7 @@ PMXReader::PMXReader(const char* filePath) {
         case 0x584d50://"PMX "
             float version;
             fread(&version, sizeof(float),1,file);
-            LOG_SYSTEM_OUT("version=%f",version);
+            LOG_PRINTF("version=%f",version);
             if(version > 2.0)
             {
                 //not supported
@@ -52,7 +52,7 @@ PMXReader::PMXReader(const char* filePath) {
 
                 directBoneCount=0;
                 glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS,&maxVertexShaderVecCount);
-                LOG_SYSTEM_OUT("max vec4=%d",maxVertexShaderVecCount);
+                LOG_PRINTF("max vec4=%d",maxVertexShaderVecCount);
                 if(boneCount > 0)
                 {
                     unsigned int * boneRecord=new unsigned int[boneCount];
@@ -71,7 +71,7 @@ PMXReader::PMXReader(const char* filePath) {
                             vertices[i].setBoneAt(j,bones[bone].getActualIndex());
                         }
                     }
-                    LOG_SYSTEM_OUT("direct bone count=%d",directBoneCount);
+                    LOG_PRINTF("direct bone count=%d",directBoneCount);
                     unsigned int k=directBoneCount;
                     selfAppendBoneCount=0;
                     for (int i = 0; i < boneCount; ++i) {
@@ -119,7 +119,7 @@ PMXReader::PMXReader(const char* filePath) {
             fclose(file);
             break;
         default:
-            LOG_SYSTEM_OUT("magic=%d",header.magic);
+            LOG_PRINTF("magic=%d",header.magic);
             fclose(file);
             break;
     }
@@ -614,7 +614,7 @@ void PMXReader::drawShadowMap(EnvironmentLight* environmentLight) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,bufferIds[2]);
     for (int i = 0; i < materialCount; ++i) {
-        if (materials[materialIndices[i]].throwsShadow() && materials[materialIndices[i]].getDiffuse()[3] != 0)
+        if (materials[materialIndices[i]].castShadow() && materials[materialIndices[i]].getDiffuse()[3] != 0)
         {
             if(materials[materialIndices[i]].isDoubleSided())glDisable(GL_CULL_FACE);
             else glEnable(GL_CULL_FACE);
@@ -698,7 +698,7 @@ void PMXReader::initShader() {
     }
     glShaderSource(mVertexShader,1,(const char**)&s,&length);
     glCompileShader(mVertexShader);
-    LOG_SYSTEM_OUT("%s",s);
+    LOG_PRINTLN(s);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxFragmentShader.fs",&length,&s);
     glShaderSource(mFragmentShader,1,(const char**)&s,&length);
@@ -709,7 +709,7 @@ void PMXReader::initShader() {
     glLinkProgram(mProgram);
 
     mPositionHandle= (GLuint) glGetAttribLocation(mProgram, "aPosition");
-    LOG_SYSTEM_OUT("err=%d",glGetError());
+    LOG_PRINTF("err=%d",glGetError());
     mNormalHandle= (GLuint) glGetAttribLocation(mProgram, "aNormal");
     mUVHandle= (GLuint) glGetAttribLocation(mProgram, "aUV");
     mBonesHandle= (GLuint) glGetAttribLocation(mProgram, "aBones");
@@ -757,7 +757,7 @@ void PMXReader::initShadowMapShader() {
     }
     glShaderSource(mShadowVertexShader,1,(const char**)&s,&length);
     glCompileShader(mShadowVertexShader);
-    LOG_SYSTEM_OUT("%s",s);
+    LOG_PRINTLN(s);
     delete[] s;
     loadShader("/data/data/com.wjy50.app.mmdviewer/files/pmxShadowFragmentShader.fs",&length,&s);
     glShaderSource(mShadowFragmentShader,1,(const char**)&s,&length);
@@ -768,7 +768,7 @@ void PMXReader::initShadowMapShader() {
     glLinkProgram(mShadowProgram);
 
     mShadowPositionHandle= (GLuint) glGetAttribLocation(mShadowProgram, "aPosition");
-    LOG_SYSTEM_OUT("err=%d",glGetError());
+    LOG_PRINTF("err=%d",glGetError());
     mShadowBonesHandle= (GLuint) glGetAttribLocation(mShadowProgram, "aBones");
     mShadowWeightHandle= (GLuint) glGetAttribLocation(mShadowProgram, "aWeights");
 
@@ -788,10 +788,10 @@ void PMXReader::readInfo(FILE *file) {
 }
 
 void PMXReader::readNameAndDescription(FILE *file) {
-    name=MString::readString(file,encoding);
-    nameE=MString::readString(file,encoding);
-    desc=MString::readString(file,encoding);
-    descE=MString::readString(file,encoding);
+    name= MString::readString(file, encoding, UTF_8);
+    nameE= MString::readString(file, encoding, UTF_8);
+    desc= MString::readString(file, encoding, UTF_8);
+    descE= MString::readString(file, encoding, UTF_8);
 }
 
 void PMXReader::readVerticesAndIndices(FILE *file) {
@@ -951,7 +951,7 @@ void PMXReader::performMaterialAddOperation(unsigned int index, PMXMaterialMorph
 
     material->setEdgeSize(material->getInitialEdgeSize()+data->getEdgeSize()*f);
 
-    const float * textureCoefficient=data->getSphereCoefficient();
+    const float * textureCoefficient=data->getTextureCoefficient();
     material->setTextureCoefficient(1+textureCoefficient[0]*f,1+textureCoefficient[1]*f,1+textureCoefficient[2]*f,1+textureCoefficient[3]*f);
 
     const float * sphereCoefficient=data->getSphereCoefficient();

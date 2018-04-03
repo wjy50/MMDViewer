@@ -5,13 +5,17 @@
 #ifndef MMDVIEWER_MATRIX_H
 #define MMDVIEWER_MATRIX_H
 
+#include <string.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 static float sTemp[32];
 
-void floatArrayCopy(const float * src, float * dest, int count);
+#define floatArrayCopy(src,dest,count) memcpy(dest,src,sizeof(float)*count)
+
+//void floatArrayCopy(const float * src, float * dest, int count);
 void multiplyMM(float*, const float*, const float*);
 void multiplyMV(float*, const float*, const float*);
 void perspectiveM(float* m, float fovy, float aspect, float zNear, float zFar);

@@ -25,8 +25,8 @@ PMXBone::PMXBone() {
 void PMXBone::read(FILE *file, size_t boneSize, MStringEncoding encoding, float *localMat, float *position) {
     this->localMat=localMat;
     setIdentityM(localMat);
-    name=MString::readString(file,encoding);
-    nameE=MString::readString(file,encoding);
+    name= MString::readString(file, encoding, UTF_8);
+    nameE= MString::readString(file, encoding, UTF_8);
     this->position=position;
     fread(position, sizeof(float),3,file);
     position[0]*=PMX_MODEL_SCALE;

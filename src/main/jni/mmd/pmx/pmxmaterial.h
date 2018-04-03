@@ -17,7 +17,7 @@ typedef enum PMX_SPHERE_MAP_MODE{
 
 typedef enum PMX_MATERIAL_FLAGS{
     DOUBLE_SIDED=1,
-    SHADOW=2,
+    GROUND_SHADOW=2,
     SELF_SHADOW_MAP=4,
     SELF_SHADOW=8,
     DRAW_EDGE=0x10,
@@ -46,7 +46,7 @@ private:
     bool doubleSided;
     GLenum drawMode;
 
-    bool shadow,mThrowsShadow,mAcceptShadow;
+    bool groundShadow,mCastShadow,mAcceptShadow;
 
     int textureState,sphereState;
 
@@ -77,7 +77,7 @@ public:
     int getTextureState();
     int getSphereState();
     void onTextureLoaded(bool isTextureSuccessful, bool isSphereSuccessful);
-    bool throwsShadow();
+    bool castShadow();
     bool acceptShadow();
 
     const float * getInitialDiffuse();
