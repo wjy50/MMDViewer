@@ -5,7 +5,7 @@
 #ifndef MMDVIEWER_MSTRING_H
 #define MMDVIEWER_MSTRING_H
 
-#include <stdio.h>
+#include <fstream>
 
 static const char *encodingNames[] = {"utf-16le", "utf-8", "shift-jis"};
 
@@ -25,41 +25,43 @@ private:
 
     static const char *getEncodingName(MStringEncoding encoding);
 
+    void setData(const char *data, size_t length);
+
 public:
-    MString(const char *data, bool copy);
+    MString(const char *data = nullptr);
 
-    MString(const char *data, size_t length, bool copy);
+    MString(const char *data, size_t length);
 
-    MString(MString &cpy);
+    MString(const MString &other);
 
-    static MString *
-    readString(FILE *file, MStringEncoding fromEncoding, MStringEncoding toEncoding);
+    MString(MString &&other) noexcept;
 
-    static MString *
-    readStringAndTrim(FILE *file, unsigned int maxSize, MStringEncoding fromEncoding,
+    void readString(std::ifstream &file, MStringEncoding fromEncoding, MStringEncoding toEncoding);
+
+    void readStringAndTrim(std::ifstream &file, unsigned int maxSize, MStringEncoding fromEncoding,
                       MStringEncoding toEncoding);
 
     int hashCode();
 
-    bool equals(MString &other);
+    bool equals(const MString &other);
 
     ~MString();
 
-    const char *getData();
+    const char *getData() const;
 
-    size_t length();
+    size_t length() const;
 
     void trim();
 
     size_t trimToSize();
 
-    const char &operator[](int i);
+    const char &operator[](int i) const;
 };
 
 class MStringBuilder
 {
 private:
-    char * mBuffer;
+    char *mBuffer;
     size_t mCapacity;
     size_t mSize;
 
@@ -70,15 +72,19 @@ public:
 
     MStringBuilder(size_t initialCapacity);
 
-    MStringBuilder & append(char c);
+    MStringBuilder &append(char c);
 
-    MStringBuilder & append(const char * s);
+    MStringBuilder &append(const char *s);
 
-    MStringBuilder & append(const char *s, size_t length);
+    MStringBuilder &append(const char *s, size_t length);
 
-    MStringBuilder & trim();
+    MStringBuilder &trim();
 
-    MString * build();
+    MString build();
+
+    const char *getData() const;
+
+    size_t size() const;
 
     ~MStringBuilder();
 };

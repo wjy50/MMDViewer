@@ -5,7 +5,7 @@
 #ifndef MMDVIEWER_VMDREADER_H
 #define MMDVIEWER_VMDREADER_H
 
-#include <stdio.h>
+#include <fstream>
 #include "../../utils/mstring.h"
 #include "bonekeyframe.h"
 #include "morphkeyframe.h"
@@ -13,33 +13,40 @@
 #include "lightkeyframe.h"
 #include "ikkeyframe.h"
 
-class VMDReader{
+class VMDReader
+{
 private:
-    MString* modelName;
+    MString modelName;
 
-    unsigned int boneKeyFrameCount;
-    BoneKeyFrame* boneKeyFrames;
+    int boneKeyFrameCount;
+    BoneKeyFrame *boneKeyFrames;
 
-    unsigned int morphKeyFrameCount;
-    MorphKeyFrame* morphKeyFrames;
+    int morphKeyFrameCount;
+    MorphKeyFrame *morphKeyFrames;
 
-    unsigned int cameraKeyFrameCount;
-    CameraKeyFrame* cameraKeyFrames;
+    int cameraKeyFrameCount;
+    CameraKeyFrame *cameraKeyFrames;
 
-    unsigned int lightKeyFrameCount;
-    LightKeyFrame* lightKeyFrames;
+    int lightKeyFrameCount;
+    LightKeyFrame *lightKeyFrames;
 
-    unsigned int ikKeyFrameCount;
-    IKKeyFrame* ikKeyFrames;
+    int ikKeyFrameCount;
+    IKKeyFrame *ikKeyFrames;
 
-    void readBoneKeyFrames(FILE* file);
-    void readMorphKeyFrames(FILE* file);
-    void readCameraKeyFrames(FILE* file);
-    void readLightKeyFrames(FILE* file);
-    bool readSelfShadowKeyFramesIfAvailable(FILE *file);
-    void readIKKeyFramesIfAvailable(FILE* file);
+    void readBoneKeyFrames(std::ifstream &file);
+
+    void readMorphKeyFrames(std::ifstream &file);
+
+    void readCameraKeyFrames(std::ifstream &file);
+
+    void readLightKeyFrames(std::ifstream &file);
+
+    bool readSelfShadowKeyFramesIfAvailable(std::ifstream &file);
+
+    void readIKKeyFramesIfAvailable(std::ifstream &file);
+
 public:
-    VMDReader(const char * filePath);
+    VMDReader(const char *filePath);
 
     ~VMDReader();
 };

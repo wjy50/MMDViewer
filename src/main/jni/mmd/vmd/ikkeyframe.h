@@ -5,11 +5,33 @@
 #ifndef MMDVIEWER_IKKEYFRAME_H
 #define MMDVIEWER_IKKEYFRAME_H
 
-#include <stdio.h>
+#include "vmdkeyframe.h"
+#include "../../utils/mstring.h"
 
-class IKKeyFrame{
+class IKKeyFrame : public VMDKeyFrame
+{
 public:
-    void read(FILE* file);
+    class IKSwitch
+    {
+    private:
+        MString name;
+        bool on;
+
+    public:
+        IKSwitch();
+
+        void read(std::ifstream &file);
+    };
+private:
+    bool show;
+    int ikCount;
+    IKSwitch *switches;
+public:
+    IKKeyFrame();
+
+    void read(std::ifstream &file);
+
+    ~IKKeyFrame();
 };
 
 #endif //MMDVIEWER_IKKEYFRAME_H

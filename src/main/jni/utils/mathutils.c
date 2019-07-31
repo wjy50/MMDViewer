@@ -6,5 +6,5 @@
 
 float clamp(float low, float high, float f)
 {
-    return fminf(fmaxf(f,low),high);
+    return fminf(fmaxf(f, low), high);
 }

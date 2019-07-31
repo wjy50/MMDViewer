@@ -8,9 +8,11 @@
 #ifndef MMDVIEWER_ABSGLOBJECT_H
 #define MMDVIEWER_ABSGLOBJECT_H
 
-class AbsGLObject{
+class AbsGLObject
+{
 public:
-    virtual void draw(const float*, const float*, EnvironmentLight*)=0;
+    virtual void draw(const float *viewMat, const float *projMat, EnvironmentLight &env)=0;
+
     virtual void updateModelState()=0;
 };
 

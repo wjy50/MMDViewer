@@ -5,120 +5,152 @@
 #ifndef MMDVIEWER_PMXBONE_H
 #define MMDVIEWER_PMXBONE_H
 
-#include <stdio.h>
+#include <vector>
+
 #include "../../utils/mstring.h"
 
-typedef enum BONE_FLAG{
-    TO_BONE=1,
-    ROTATION=2,
-    TRANSLATION=4,
-    VISIBLE=8,
-    ENABLE=0x10,
-    IK=0x20,
-    APPEND_LOCAL=0x80,
-    APPEND_ROTATION=0x100,
-    APPEND_TRANSLATION=0x200,
-    FIX_AXIS=0x400,
-    LOCAL_FRAME=0x800,
-    AFTER_PHYSICS=0x1000,
-    EXTRA_PARENT=0x2000
-}BoneFlag;
+typedef enum BONE_FLAG
+{
+    TO_BONE = 1,
+    ROTATION = 2,
+    TRANSLATION = 4,
+    VISIBLE = 8,
+    ENABLE = 0x10,
+    IK = 0x20,
+    APPEND_LOCAL = 0x80,
+    APPEND_ROTATION = 0x100,
+    APPEND_TRANSLATION = 0x200,
+    FIX_AXIS = 0x400,
+    LOCAL_FRAME = 0x800,
+    AFTER_PHYSICS = 0x1000,
+    EXTRA_PARENT = 0x2000
+} BoneFlag;
 
-class PMXBoneIKChainNode{
+class PMXBoneIKChainNode
+{
 private:
-    unsigned int ikBone;
+    int ikBone;
     bool limited;
-    float * low;
-    float * high;
-    float * ikMat;
+    float *low;
+    float *high;
 public:
     PMXBoneIKChainNode();
-    void read(FILE *file, size_t boneSize);
 
-    unsigned int getBoneIndex();
-    bool isLimited();
-    const float * getLowLimit();
-    const float * getHighLimit();
+    void read(std::ifstream &file, size_t boneSize);
 
-    float * getIKMat();
+    int getBoneIndex() const;
+
+    bool isLimited() const;
+
+    const float *getLowLimit() const;
+
+    const float *getHighLimit() const;
 
     ~PMXBoneIKChainNode();
 };
 
-class PMXBoneIK{
+class PMXBoneIK
+{
 private:
-    unsigned int target;
+    int target;
     int loopCount;
     float loopAngleLimit;
     int ikChainLength;
-    PMXBoneIKChainNode* ikChain;
+    PMXBoneIKChainNode *ikChain;
 public:
-    PMXBoneIK(FILE *file, size_t boneSize);
-    unsigned int getTarget();
-    int getIkChainLength();
-    PMXBoneIKChainNode* getIkChainNodeAt(int index);
-    float getLoopAngleLimit();
-    int getLoopCount();
+    PMXBoneIK(std::ifstream &file, size_t boneSize);
+
+    int getTarget() const;
+
+    int getIkChainLength() const;
+
+    PMXBoneIKChainNode *getIkChainNodeAt(int index) const;
+
+    float getLoopAngleLimit() const;
+
+    int getLoopCount() const;
+
     ~PMXBoneIK();
 };
 
-class PMXBone{
+class PMXBone
+{
 private:
-    MString * name,*nameE;
-    float * position;
-    unsigned int parent;
+    MString name, nameE;
+    float *position;
+    int parent;
     int level;
     unsigned short flag;
     int child;
-    float * offset;
-    unsigned int appendParent;
+    float *offset;
+    int appendParent;
     float appendRatio;
-    float * axis;
-    float * localX;
-    float * localZ;
-    float * localY;
+    float *axis;
+    float *localX;
+    float *localY;
+    float *localZ;
     int extraKey;
-    PMXBoneIK* boneIK;
+    PMXBoneIK *boneIK;
 
-    unsigned int actualIndex;
+    int actualIndex;
 
-    float * localMat;
-    float * localMatWithAppend;
+    float *localMat;
+    float *localMatWithAppend;
 
-    float * ikMat;
-
-    int childCount;
-    int childrenCapacity;
-    unsigned int * children;
+    std::vector<int> children;
 
     bool appendFromSelf;
+
+    float *ikMat;
+    bool ikMatEnabled;
 public:
     PMXBone();
+
     void
-    read(FILE *file, size_t boneSize, MStringEncoding encoding, float *localMat, float *position);
+    read(std::ifstream &file, size_t boneSize, MStringEncoding encoding, float *localMat, float *position);
+
     void normalizeLocal();
 
-    PMXBoneIK* getBoneIK();
-    void setActualIndex(unsigned int actualIndex);
-    unsigned int getActualIndex();
-    float * getPosition();
-    unsigned int getParent();
-    unsigned int getAppendParent();
-    float getAppendRatio();
-    int getChildCount();
-    const float * getLocalMat();
-    void setIKMat(float * ikMat);
-    void addChild(unsigned int child);
-    unsigned int getChildAt(int index);
-    void setAppendFromSelf(bool appendFromSelf);
-    bool isAppendFromSelf();
-    const float * getCurrentMat();
-    float * getLocalMatWithAppend();
-    float * getIKMat();
+    PMXBoneIK *getBoneIK() const;
 
-    const char * getName();
+    void setActualIndex(int actualIndex);
+
+    int getActualIndex() const;
+
+    float *getPosition() const;
+
+    int getParent() const;
+
+    int getAppendParent() const;
+
+    float getAppendRatio() const;
+
+    int getChildCount() const;
+
+    const float *getLocalMat() const;
+
+    void addChild(int child);
+
+    int getChildAt(int index) const;
+
+    void setAppendFromSelf(bool appendFromSelf);
+
+    bool isAppendFromSelf() const;
+
+    const float *getCurrentMat() const;
+
+    float *getLocalMatWithAppend() const;
+
+    const char *getName() const;
+
+    float *getIKMat() const;
+
+    void enableIKMat();
+
+    void disableIKMat();
 
     void rotateBy(float a, float x, float y, float z);
+
     void translationBy(float x, float y, float z);
 
     ~PMXBone();

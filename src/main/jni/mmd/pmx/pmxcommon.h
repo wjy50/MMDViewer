@@ -7,8 +7,6 @@
 
 #include <GLES3/gl3.h>
 
-#define PMX_MODEL_SCALE 0.1f;
-
 typedef struct PMX_INFO{
     unsigned char encoding;
     unsigned char UVACount;
@@ -19,5 +17,7 @@ typedef struct PMX_INFO{
     unsigned char morphSize;
     unsigned char bodySize;
 }PMXInfo;
+
+#define IS_NEGATIVE_ONE(x, size) ((x) ^ (0xffffffff << ((size) * 8))) == 0xffffffff
 
 #endif //MMDVIEWER_PMXCOMMON_H

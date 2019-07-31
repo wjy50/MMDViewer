@@ -8,33 +8,49 @@
 #include "scenecamera.h"
 #include "objects/cube.h"
 #include "../mmd/pmx/pmxreader.h"
+#include "../mmd/vmd/vmdreader.h"
 
-class Renderer{
+class Renderer
+{
 private:
-    int surfaceWidth,surfaceHeight;
-    AbsCamera* camera;
-    PMXReader* pmx;
-    EnvironmentLight* environmentLight;
+    int surfaceWidth, surfaceHeight;
+    AbsCamera *camera;
+    PMXReader *pmx;
+    VMDReader *vmd;
+    EnvironmentLight environmentLight;
 
     int shadowMapSize;
     GLuint shadowMapFBOHandle;
     GLuint shadowMapTextureHandle;
 public:
     Renderer();
+
     void onSurfaceCreate();
-    void onSurfaceChanged(int width,int height);
+
+    void onSurfaceChanged(int width, int height);
+
     void onDrawFrame();
-    int getSurfaceWidth();
-    int getSurfaceHeight();
-    void setCamera(AbsCamera* camera);
-    AbsCamera* getCamera();
-    void setSunPosition(float, float, float);
-    void setSunLightStrength(float, float, float);
-    void addPMXModel(const char* path);
-    PMXReader* getModel();
+
+    int getSurfaceWidth() const;
+
+    int getSurfaceHeight() const;
+
+    void setCamera(AbsCamera *camera);
+
+    AbsCamera *getCamera() const;
+
+    void setSunPosition(float x, float y, float z);
+
+    void setSunLightStrength(float r, float g, float b);
+
+    void addPMXModel(const char *path);
+
+    void addVMDMotion(const char *path);
+
+    PMXReader *getModel() const;
 
     /*if shadowMapSize is set to 0, shadow map will be disabled*/
-    void setShadowMapSize(int);
+    void setShadowMapSize(int size);
 
     ~Renderer();
 };

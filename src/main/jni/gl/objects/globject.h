@@ -32,9 +32,6 @@ private:
     GLint mShininessHandle;
 
     float ambient[3],diffuse[4],specular[3],shininess;
-
-    int boneCount;
-    float * boneMats;
 public:
     GLObject();
     void setVertices(int vertexCount, float* vertices, float* normals);
@@ -44,13 +41,13 @@ public:
     void initShader();
     //void genUVBuffer()
 
-    void setAmbient(float, float, float);
-    void setDiffuse(float, float, float, float);
-    void setSpecular(float, float, float);
-    void setShininess(float);
+    void setAmbient(float r, float g, float b);
+    void setDiffuse(float r, float g, float b, float a);
+    void setSpecular(float r, float g, float b);
+    void setShininess(float s);
 
-    void draw(const float*, const float*, EnvironmentLight*);
-    void updateModelState();
+    void draw(const float *viewMat, const float *projMat, EnvironmentLight &env) override;
+    void updateModelState() override;
     ~GLObject();
 };
 

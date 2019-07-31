@@ -5,45 +5,61 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
+set(CMAKE_CXX_STANDARD 11)
+
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
 # Gradle automatically packages shared libraries with your APK.
 
-add_library( # Sets the name of the library.
-             MyNativeGLInterface
+add_library(
+        # Sets the name of the library.
+        MyNativeGLInterface
 
-             # Sets the library as a shared library.
-             SHARED
+        # Sets the library as a shared library.
+        SHARED
 
-             # Provides a relative path to your source file(s).
-             src/main/jni/MyNativeGLInterface.cpp
-             src/main/jni/gl/objects/cube.cpp
-             src/main/jni/gl/objects/globject.cpp
-             src/main/jni/gl/abscamera.cpp
-             src/main/jni/gl/application.cpp
-             src/main/jni/gl/renderer.cpp
-             src/main/jni/gl/scenecamera.cpp
-             src/main/jni/gl/shaderloader.cpp
-             src/main/jni/gl/texture.c
-             src/main/jni/gl/environment.cpp
-             src/main/jni/matrix/matrix.c
-             src/main/jni/mmd/pmx/pmxvertex.cpp
-             src/main/jni/mmd/pmx/pmxtexture.cpp
-             src/main/jni/mmd/pmx/pmxmaterial.cpp
-             src/main/jni/mmd/pmx/pmxbone.cpp
-             src/main/jni/mmd/pmx/pmxmorph.cpp
-             src/main/jni/mmd/pmx/pmxreader.cpp
-             src/main/jni/mmd/vmd/vmdreader.cpp
-             src/main/jni/mmd/vmd/bonekeyframe.cpp
-             src/main/jni/mmd/vmd/morphkeyframe.cpp
-             src/main/jni/mmd/vmd/camerakeyframe.cpp
-             src/main/jni/mmd/vmd/lightkeyframe.cpp
-             src/main/jni/mmd/vmd/ikkeyframe.cpp
-             src/main/jni/utils/mstring.cpp
-             src/main/jni/utils/mathutils.c
-             src/main/jni/vector/vector.c
-             src/main/jni/quaternion/quaternion.c
+        # Provides a relative path to your source file(s).
+        src/main/jni/MyNativeGLInterface.cpp
+)
+
+add_library(
+        mmdviewer
+
+        SHARED
+
+        src/main/jni/gl/objects/cube.cpp
+        src/main/jni/gl/objects/globject.cpp
+        src/main/jni/gl/abscamera.cpp
+        src/main/jni/gl/application.cpp
+        src/main/jni/gl/renderer.cpp
+        src/main/jni/gl/scenecamera.cpp
+        src/main/jni/gl/shaderloader.cpp
+        src/main/jni/gl/environment.cpp
+        src/main/jni/gl/texture/texture.cpp
+        src/main/jni/gl/texture/texture_jpeg.cpp
+        src/main/jni/gl/texture/texture_png.cpp
+        src/main/jni/gl/texture/texture_bmp.cpp
+        src/main/jni/gl/texture/texture_tga.cpp
+        src/main/jni/gl/texture/texture_load_exception.cpp
+        src/main/jni/matrix/matrix.c
+        src/main/jni/mmd/pmx/pmxvertex.cpp
+        src/main/jni/mmd/pmx/pmxtexture.cpp
+        src/main/jni/mmd/pmx/pmxmaterial.cpp
+        src/main/jni/mmd/pmx/pmxbone.cpp
+        src/main/jni/mmd/pmx/pmxmorph.cpp
+        src/main/jni/mmd/pmx/pmxreader.cpp
+        src/main/jni/mmd/vmd/vmdreader.cpp
+        src/main/jni/mmd/vmd/vmdkeyframe.cpp
+        src/main/jni/mmd/vmd/bonekeyframe.cpp
+        src/main/jni/mmd/vmd/morphkeyframe.cpp
+        src/main/jni/mmd/vmd/camerakeyframe.cpp
+        src/main/jni/mmd/vmd/lightkeyframe.cpp
+        src/main/jni/mmd/vmd/ikkeyframe.cpp
+        src/main/jni/utils/mstring.cpp
+        src/main/jni/utils/mathutils.c
+        src/main/jni/vector/vector.c
+        src/main/jni/quaternion/quaternion.c
 )
 
 # Searches for a specified prebuilt library and stores the path as a
@@ -60,167 +76,173 @@ add_library( # Sets the name of the library.
 #              log )
 
 add_library(
-                jpeg
+        jpeg
 
-                SHARED
+        SHARED
 
-                IMPORTED
-            )
+        IMPORTED
+)
 
 set_target_properties(
-                jpeg
+        jpeg
 
-                PROPERTIES
+        PROPERTIES
 
-                IMPORTED_LOCATION
+        IMPORTED_LOCATION
 
-                ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libjpeg.so
-            )
+        ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libjpeg.so
+)
 
 add_library(
-                turbojpeg
+        turbojpeg
 
-                SHARED
+        SHARED
 
-                IMPORTED
-            )
+        IMPORTED
+)
 
 set_target_properties(
-                turbojpeg
+        turbojpeg
 
-                PROPERTIES
+        PROPERTIES
 
-                IMPORTED_LOCATION
+        IMPORTED_LOCATION
 
-                ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libturbojpeg.so
-            )
+        ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libturbojpeg.so
+)
 
 add_library(
-                png
+        png
 
-                SHARED
+        SHARED
 
-                IMPORTED
-            )
+        IMPORTED
+)
 
 set_target_properties(
-                png
+        png
 
-                PROPERTIES
+        PROPERTIES
 
-                IMPORTED_LOCATION
+        IMPORTED_LOCATION
 
-                ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libpng.so
-            )
+        ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libpng.so
+)
 
 add_library(
-                png16
+        png16
 
-                SHARED
+        SHARED
 
-                IMPORTED
-            )
+        IMPORTED
+)
 
 set_target_properties(
-                png16
+        png16
 
-                PROPERTIES
+        PROPERTIES
 
-                IMPORTED_LOCATION
+        IMPORTED_LOCATION
 
-                ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libpng16.so
-            )
+        ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libpng16.so
+)
 
 add_library(
-                z
+        z
 
-                SHARED
+        SHARED
 
-                IMPORTED
-            )
+        IMPORTED
+)
 
 set_target_properties(
-                z
+        z
 
-                PROPERTIES
+        PROPERTIES
 
-                IMPORTED_LOCATION
+        IMPORTED_LOCATION
 
-                ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libz.so
-            )
+        ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libz.so
+)
 
 add_library(
-                charset
+        charset
 
-                SHARED
+        SHARED
 
-                IMPORTED
-            )
+        IMPORTED
+)
 
 set_target_properties(
-                charset
+        charset
 
-                PROPERTIES
+        PROPERTIES
 
-                IMPORTED_LOCATION
+        IMPORTED_LOCATION
 
-                ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libcharset.so
-            )
+        ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libcharset.so
+)
 
 add_library(
-                iconv
+        iconv
 
-                SHARED
+        SHARED
 
-                IMPORTED
-            )
+        IMPORTED
+)
 
 set_target_properties(
-                iconv
+        iconv
 
-                PROPERTIES
+        PROPERTIES
 
-                IMPORTED_LOCATION
+        IMPORTED_LOCATION
 
-                ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libiconv.so
-            )
+        ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}/libiconv.so
+)
 
 find_library(
-                GLESv3
+        GLESv3
 
-                GLESv3
-            )
-
-find_library(
-                log
-
-                log
-            )
+        GLESv3
+)
 
 find_library(
-                android
+        log
 
-                android
-            )
+        log
+)
+
+find_library(
+        android
+
+        android
+)
 
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
 
-target_link_libraries( # Specifies the target library.
-                       MyNativeGLInterface
+target_link_libraries(
+        mmdviewer
 
-                       # Links the target library to the log library
-                       # included in the NDK. == ldLibs
-                       #${log-lib}
-                       jpeg
-                       turbojpeg
-                       png
-                       png16
-                       z
-                       charset
-                       iconv
-                       GLESv3
-                       log
-                       android
-                     )
+        jpeg
+        turbojpeg
+        png
+        png16
+        z
+        charset
+        iconv
+        GLESv3
+        log
+        android
+)
+
+target_link_libraries( # Specifies the target library.
+        MyNativeGLInterface
+
+        # Links the target library to the log library
+        # included in the NDK. == ldLibs
+        #${log-lib}
+        mmdviewer
+)

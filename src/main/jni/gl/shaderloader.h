@@ -5,14 +5,8 @@
 #ifndef MMDVIEWER_SHADERLOADER_H
 #define MMDVIEWER_SHADERLOADER_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "../utils/UniquePointerExt.h"
 
-int loadShader(const char* fileName, int* ptrLength, char** ptrResult);
-
-#ifdef __cplusplus
-};
-#endif
+int loadShader(const char *fileName, int *ptrLength, std::unique_ptr<char[]> &result);
 
 #endif //MMDVIEWER_SHADERLOADER_H

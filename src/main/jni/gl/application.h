@@ -11,16 +11,20 @@
 #define ACTION_UP 1
 #define ACTION_MOVE 2
 
-class Application{
+class Application
+{
 private:
-    Renderer* renderer;
-    AbsCamera* defaultCamera;
-    float dx,dy,x,y;
-    unsigned int currentMorph;
+    Renderer *renderer;
+    AbsCamera *defaultCamera;
+    float dx, dy, x, y;
+    int currentMorph;
 public:
     Application();
-    Renderer* getRenderer();
+
+    Renderer *getRenderer() const;
+
     void onTouchEvent(int action, float x, float y);
+
     ~Application();
 };
 

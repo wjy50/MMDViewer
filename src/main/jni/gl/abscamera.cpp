@@ -4,12 +4,17 @@
 
 #include "abscamera.h"
 
-void AbsCamera::setPerspectiveM(float fovy, float aspect, float zNear, float zFar) {
-    perspectiveM(projectionM,fovy,aspect,zNear,zFar);
+void AbsCamera::setPerspectiveM(float fovy, float aspect, float zNear, float zFar)
+{
+    perspectiveM(projectionM, fovy, aspect, zNear, zFar);
 }
-const float* AbsCamera::getProjectionMat() {
+
+const float *AbsCamera::getProjectionMat() const
+{
     return projectionM;
 }
-AbsCamera::~AbsCamera() {
+
+AbsCamera::~AbsCamera()
+{
 
 }

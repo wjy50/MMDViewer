@@ -9,33 +9,43 @@ import javax.microedition.khronos.opengles.GL10;
  * Created by wjy50 on 2018/2/5.
  *
  */
-public class MyRenderer implements GLSurfaceView.Renderer{
-    private boolean surfaceCreated=false;
+public class MyRenderer implements GLSurfaceView.Renderer
+{
+    private boolean surfaceCreated = false;
     private String modelPath;
+    private String motionPath;
     private long applicationHandle;
+
     public MyRenderer(long applicationHandle)
     {
-        this.applicationHandle=applicationHandle;
+        this.applicationHandle = applicationHandle;
     }
+
     @Override
-    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        System.out.println(gl.glGetString(GL10.GL_VERSION)+"by"+gl.glGetString(GL10.GL_VENDOR));
+    public void onSurfaceCreated(GL10 gl, EGLConfig config)
+    {
+        System.out.println(gl.glGetString(GL10.GL_VERSION) + "by" + gl.glGetString(GL10.GL_VENDOR));
         NativeGLInterface.nativeOnSurfaceCreate(applicationHandle);
-        if (modelPath != null)
-        {
-            NativeGLInterface.nativeAddPMXModel(applicationHandle,modelPath);
-            modelPath=null;
+        if (motionPath != null) {
+            NativeGLInterface.nativeAddVMDMotion(applicationHandle,motionPath);
+            motionPath = null;
         }
-        surfaceCreated=true;
+        if (modelPath != null) {
+            NativeGLInterface.nativeAddPMXModel(applicationHandle, modelPath);
+            modelPath = null;
+        }
+        surfaceCreated = true;
     }
 
     @Override
-    public void onSurfaceChanged(GL10 gl, int width, int height) {
-        NativeGLInterface.nativeOnSurfaceChanged(applicationHandle,width, height);
+    public void onSurfaceChanged(GL10 gl, int width, int height)
+    {
+        NativeGLInterface.nativeOnSurfaceChanged(applicationHandle, width, height);
     }
 
     @Override
-    public void onDrawFrame(GL10 gl) {
+    public void onDrawFrame(GL10 gl)
+    {
         System.out.println("draw");
         NativeGLInterface.nativeOnDrawFrame(applicationHandle);
     }
@@ -45,7 +55,13 @@ public class MyRenderer implements GLSurfaceView.Renderer{
         return surfaceCreated;
     }
 
-    public void addPMXModel(String path) {
-        modelPath=path;
+    public void addPMXModel(String path)
+    {
+        modelPath = path;
+    }
+
+    public void addVMDMotion(String path)
+    {
+        motionPath = path;
     }
 }

@@ -5,11 +5,20 @@
 #ifndef MMDVIEWER_MORPHKEYFRAME_H
 #define MMDVIEWER_MORPHKEYFRAME_H
 
-#include <stdio.h>
+#include "vmdkeyframe.h"
+#include "../../utils/mstring.h"
 
-class MorphKeyFrame{
+class MorphKeyFrame : public VMDKeyFrame
+{
+private:
+    MString name;
+    float fraction;
 public:
-    void read(FILE* file);
+    MorphKeyFrame();
+
+    void read(std::ifstream &file);
+
+    const MString &getName() const;
 };
 
 #endif //MMDVIEWER_MORPHKEYFRAME_H

@@ -5,7 +5,7 @@
 #ifndef MMDVIEWER_PMXREADER_H
 #define MMDVIEWER_PMXREADER_H
 
-#include <stdio.h>
+#include <cstdio>
 #include "../../gl/objects/globject.h"
 #include "pmxbone.h"
 #include "pmxcommon.h"
@@ -14,20 +14,22 @@
 #include "pmxvertex.h"
 #include "pmxmorph.h"
 
-typedef struct PMX_HEADER{
+typedef struct PMX_HEADER
+{
     int magic;
-}PMXHeader;
+} PMXHeader;
 
-class PMXReader:public AbsGLObject{
+class PMXReader : public AbsGLObject
+{
 private:
     PMXInfo info;
     MStringEncoding encoding;
-    MString *name,*nameE,*desc,*descE;
-    PMXVertex* vertices;
-    PMXTexture* textures;
-    PMXMaterial* materials;
-    PMXBone* bones;
-    PMXMorph* morphs;
+    MString name, nameE, desc, descE;
+    PMXVertex *vertices;
+    PMXTexture *textures;
+    PMXMaterial *materials;
+    PMXBone *bones;
+    PMXMorph *morphs;
 
     bool hasVertexBuffers;
     bool hasBoneBuffers;
@@ -35,47 +37,51 @@ private:
     GLuint bufferIds[6];
 
     GLuint mProgram;
-    GLuint mVertexShader,mFragmentShader;
+    GLuint mVertexShader, mFragmentShader;
 
-    GLuint mPositionHandle,mNormalHandle,mUVHandle,mBonesHandle,mWeightsHandle;
+    GLuint mPositionHandle, mNormalHandle, mUVHandle, mBonesHandle, mWeightsHandle;
     GLint mSunPositionHandle;
-    GLint mViewMatHandle,mProjectionMatHandle,mBoneMatsHandle,mSunMatHandle;
+    GLint mViewMatHandle, mProjectionMatHandle, mBoneMatsHandle, mSunMatHandle;
 
     GLint mSunLightStrengthHandle;
-    GLint mAmbientHandle,mDiffuseHandle,mSpecularHandle;
-    GLint mSamplersHandle,mTextureModesHandle;
-    GLint mTextureCoefficientHandle,mSphereCoefficientHandle;
+    GLint mAmbientHandle, mDiffuseHandle, mSpecularHandle;
+    GLint mSamplersHandle, mTextureModesHandle;
+    GLint mTextureCoefficientHandle, mSphereCoefficientHandle;
 
-    GLint samplers[3]={0,1,0};
+    GLint samplers[3] = {0, 1, 0};
 
     int vertexCount;
     int indexCount;
     int faceCount;
     int textureCount;
     int materialCount;
-    unsigned int boneCount;
-    unsigned int directBoneCount;
-    unsigned int morphCount;
-    float * vertexCoordinates;
-    float * normals;
-    float * uvs;
-    unsigned int * indices;
+    int boneCount;
+    int directBoneCount;
+    int morphCount;
+    float *vertexCoordinates;
+    float *normals;
+    float *uvs;
+    unsigned int *indices;
 
-    unsigned int * materialIndices;
-    float * materialDiffuses;
-    float * materialSpecular;
-    float * materialAmbient;
-    float * materialEdgeColors;
+    int *materialIndices;
+    float *materialDiffuses;
+    float *materialSpecular;
+    float *materialAmbient;
+    float *materialEdgeColors;
 
-    float * bonePositions;
-    float * localBoneMats;
-    float * finalBoneMats;
+    float *bonePositions;
+    float *localBoneMats;
+    float *finalBoneMats;
 
     char currentPassId;
-    char*boneStateIds;
+    char *boneStateIds;
+
     void calculateIK();
-    void calculateBone(unsigned int index);
-    void updateIKMatrix(unsigned int index);
+
+    void calculateBone(int index);
+
+    void updateIKMatrix(int index);
+
     float matrixTmp[16];
     float vecTmp[4];
     bool newBoneTransform;
@@ -83,51 +89,70 @@ private:
     GLint maxVertexShaderVecCount;
 
     GLuint mShadowProgram;
-    GLuint mShadowVertexShader,mShadowFragmentShader;
-    GLuint mShadowPositionHandle,mShadowBonesHandle,mShadowWeightHandle;
-    GLint mShadowSunMatHandle,mShadowBoneMatsHandle;
+    GLuint mShadowVertexShader, mShadowFragmentShader;
+    GLuint mShadowPositionHandle, mShadowBonesHandle, mShadowWeightHandle;
+    GLint mShadowSunMatHandle, mShadowBoneMatsHandle;
 
-    unsigned int ikCount;
-    unsigned int * ikIndices;
+    int ikCount;
+    int *ikIndices;
 
     void updateBoneMats();
-    void invalidateChildren(unsigned int index);
+
+    void invalidateChildren(int index);
+
     void updateSelfAppend();
 
-    void readInfo(FILE *file);
-    void readNameAndDescription(FILE *file);
-    void readVerticesAndIndices(FILE *file);
-    void readTextures(FILE *file, const char *filePath);
-    void readMaterials(FILE *file);
-    void readBones(FILE *file);
-    void readMorphs(FILE *file);
+    void readInfo(std::ifstream &file);
 
-    void performMaterialAddOperation(unsigned int index, PMXMaterialMorphData *data, float f);
-    void performMaterialMulOperation(unsigned int index, PMXMaterialMorphData *data, float f);
+    void readNameAndDescription(std::ifstream &file);
 
-    unsigned int vertexChangeStart,vertexChangeEnd;
-    unsigned int uvChangeStart,uvChangeEnd;
+    void readVerticesAndIndices(std::ifstream &file);
 
-    unsigned int * selfAppendBones;
+    void readTextures(std::ifstream &file, const char *filePath);
+
+    void readMaterials(std::ifstream &file);
+
+    void readBones(std::ifstream &file);
+
+    void readMorphs(std::ifstream &file);
+
+    void performMaterialAddOperation(int index, PMXMaterialMorphData *data, float f);
+
+    void performMaterialMulOperation(int index, PMXMaterialMorphData *data, float f);
+
+    int vertexChangeStart, vertexChangeEnd;
+    int uvChangeStart, uvChangeEnd;
+
+    int *selfAppendBones;
     int selfAppendBoneCount;
 public:
-    PMXReader(const char* filePath);
+    PMXReader(const char *filePath);
+
     void genVertexBuffers();
+
     void genBoneBuffers();
+
     void initShader();
+
     void initShadowMapShader();
+
     void updateModelState();
-    void draw(const float*, const float*, EnvironmentLight*);
-    void drawShadowMap(EnvironmentLight*);
+
+    void draw(const float *, const float *, EnvironmentLight &);
+
+    void drawShadowMap(EnvironmentLight &environmentLight);
 
     void setMorphFraction(int index, float f);
-    float getMorphFraction(int index);
 
-    void rotateBone(unsigned int index, float a, float x, float y, float z);
-    void translateBone(unsigned int index, float x, float y, float z);
+    float getMorphFraction(int index) const;
 
-    unsigned int getMorphCount();
-    const char * getMorphName(int index);
+    void rotateBone(int index, float a, float x, float y, float z);
+
+    void translateBone(int index, float x, float y, float z);
+
+    int getMorphCount() const;
+
+    const char *getMorphName(int index) const;
 
     ~PMXReader();
 };

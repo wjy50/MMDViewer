@@ -2,23 +2,23 @@
 // Created by wjy50 on 2018/2/23.
 //
 
-#include <string.h>
+#include <cstring>
 #include "mstring.h"
 #include "../iconv/iconv.h"
+#include "UniquePointerExt.h"
 #include "debugutils.h"
+
+using namespace std;
 
 MStringBuilder::MStringBuilder()
 {
-    mBuffer = 0;
+    mBuffer = nullptr;
     mCapacity = 0;
     mSize = 0;
 }
 
-MStringBuilder::MStringBuilder(size_t initialCapacity)
+MStringBuilder::MStringBuilder(size_t initialCapacity) : MStringBuilder()
 {
-    mBuffer = 0;
-    mCapacity = 0;
-    mSize = 0;
     ensure(initialCapacity);
 }
 
@@ -26,27 +26,27 @@ void MStringBuilder::ensure(size_t increment)
 {
     if (increment == 0)
         return;
-    size_t cap=mCapacity;
+    size_t cap = mCapacity;
     if (mCapacity == 0) mCapacity = 1;
     while (mCapacity < mSize + increment) mCapacity <<= 1;
     if (mCapacity != cap) {
-        char * newArray = new char[mCapacity];
+        auto newArray = make_unique_array<char[]>(mCapacity);
         if (cap != 0) {
-            memcpy(newArray,mBuffer,mSize);
+            memcpy(newArray.get(), mBuffer, mSize);
             delete[] mBuffer;
         }
-        mBuffer = newArray;
+        mBuffer = newArray.release();
     }
 }
 
-MStringBuilder& MStringBuilder::append(char c)
+MStringBuilder &MStringBuilder::append(char c)
 {
     ensure(sizeof(char));
     mBuffer[mSize++] = c;
     return *this;
 }
 
-MStringBuilder& MStringBuilder::append(const char *s)
+MStringBuilder &MStringBuilder::append(const char *s)
 {
     size_t inLength = strlen(s);
     ensure(inLength);
@@ -55,7 +55,7 @@ MStringBuilder& MStringBuilder::append(const char *s)
     return *this;
 }
 
-MStringBuilder& MStringBuilder::append(const char *s, size_t length)
+MStringBuilder &MStringBuilder::append(const char *s, size_t length)
 {
     ensure(length);
     memcpy(mBuffer, s, length);
@@ -63,11 +63,11 @@ MStringBuilder& MStringBuilder::append(const char *s, size_t length)
     return *this;
 }
 
-MStringBuilder& MStringBuilder::trim()
+MStringBuilder &MStringBuilder::trim()
 {
     size_t begin = 0, end = mSize;
     for (size_t i = 0; i < mSize; ++i) {
-        if(mBuffer[i] != ' ') {
+        if (mBuffer[i] != ' ') {
             begin = i;
             break;
         }
@@ -86,123 +86,140 @@ MStringBuilder& MStringBuilder::trim()
     return *this;
 }
 
-MString* MStringBuilder::build()
+MString MStringBuilder::build()
 {
-    return new MString(mBuffer, mSize, true);
+    return MString(mBuffer, mSize);
+}
+
+const char* MStringBuilder::getData() const
+{
+    return mBuffer;
+}
+
+size_t MStringBuilder::size() const
+{
+    return mSize;
 }
 
 MStringBuilder::~MStringBuilder()
 {
-    if (mBuffer) delete[] mBuffer;
+    delete[] mBuffer;
 }
 
-MString *MString::readString(FILE *file, MStringEncoding fromEncoding, MStringEncoding toEncoding)
+void MString::readString(ifstream &file, MStringEncoding fromEncoding, MStringEncoding toEncoding)
 {
     unsigned int size;
-    fread(&size, sizeof(int), 1, file);
-    char *s = new char[size + 1];
+    file.read(reinterpret_cast<char *>(&size), sizeof(int));
+    auto s = make_unique_array<char[]>(size + 1);
     s[size] = 0;
-    fread(s, sizeof(char), size, file);
+    file.read(s.get(), size * sizeof(char));
     if (size > 0) {
         if (fromEncoding != toEncoding) {
             MStringBuilder builder(size);
-            LOG_PRINTF("%s -> %s", getEncodingName(fromEncoding), getEncodingName(toEncoding));
             iconv_t cd = iconv_open(getEncodingName(toEncoding), getEncodingName(fromEncoding));
+            size_t inSize = size;
+            const size_t bufferSize = 256;
+            size_t outSize = bufferSize;
+            auto buffer = make_unique_array<char[]>(bufferSize);
+            char *inBuffer = s.get();
+            char *outBuffer = buffer.get();
+            while (inSize > 0) {
+                iconv(cd, &inBuffer, &inSize, &outBuffer, &outSize);
+                size_t converted = bufferSize - outSize;
+                if (converted == 0)
+                    break;
+                builder.append(buffer.get(), converted);
+                outBuffer = buffer.get();
+                outSize = bufferSize;
+            }
+            iconv_close(cd);
+            setData(builder.trim().getData(), builder.size());
+        } else {
+            setData(s.get(), size);
+            trim();
+        }
+    } else
+        setData("", 0);
+}
+
+void MString::readStringAndTrim(ifstream &file, unsigned int maxSize, MStringEncoding fromEncoding,
+                                    MStringEncoding toEncoding)
+{
+    if (maxSize > 0) {
+        auto s = make_unique_array<char[]>(maxSize + 1);
+        file.read(s.get(), maxSize * sizeof(char));
+        s[maxSize] = 0;
+        size_t size = strlen(s.get());
+        if (fromEncoding != toEncoding) {
+            MStringBuilder builder(maxSize);
+            iconv_t cd = iconv_open(getEncodingName(toEncoding), getEncodingName(fromEncoding));
+            char *inBuffer = s.get();
             size_t inSize = size;
             size_t bufferSize = 256;
             size_t outSize = bufferSize;
-            char *buffer = new char[bufferSize];
-            char *inBuffer = s;
-            char *outBuffer = buffer;
+            auto buffer = make_unique_array<char[]>(bufferSize);
+            char *outBuffer = buffer.get();
             while (inSize > 0) {
                 iconv(cd, &inBuffer, &inSize, &outBuffer, &outSize);
                 size_t converted = bufferSize - outSize;
                 if (converted == 0) break;
-                builder.append(buffer, converted);
-                outBuffer = buffer;
+                builder.append(buffer.get(), converted);
+                outBuffer = buffer.get();
                 outSize = bufferSize;
             }
             iconv_close(cd);
-            delete[] s;
-            delete[] buffer;
-            return builder.trim().build();
+            setData(builder.trim().getData(), builder.size());
         } else {
-            MString *string = new MString(s, size, false);
-            string->trim();
-            return string;
+            setData(s.get(), size);
+            trim();
         }
-    }
-    return new MString("", true);
+    } else
+        setData("", 0);
 }
 
-MString *MString::readStringAndTrim(FILE *file, unsigned int maxSize, MStringEncoding fromEncoding,
-                                    MStringEncoding toEncoding)
+MString::MString(const char *data)
+: mData(nullptr)
 {
-    if (maxSize > 0) {
-        char *s = new char[maxSize + 1];
-        fread(s, sizeof(char), maxSize, file);
-        LOG_PRINTLN(s);
-        delete[] s;
-        /*if (fromEncoding != toEncoding) {
-            MStringBuilder builder(maxSize);
-            iconv_t cd = iconv_open(getEncodingName(toEncoding), getEncodingName(fromEncoding));
-            char *inBuffer = s;
-            size_t inSize = maxSize;
-        } else {
-            MString *string = new MString(s, maxSize, false);
-            string->trim();
-            return string;
-        }*/
-    }
-    return new MString("", true);
+    if (!data || (mLength = strlen(data)) == 0)
+        mLength = 0;
+    setData(data, mLength);
 }
 
-MString::MString(const char *data, bool copy)
+MString::MString(const char *data, size_t length)
+: mData(nullptr), mLength(0), mHashCode(0)
 {
-    for (size_t i = 0;; ++i) {
-        if (data[i] == 0) {
-            mLength = i;
-            break;
-        }
-    }
-    if (copy) {
-        char *temp = new char[mLength + 1];
-        memcpy(temp, data, mLength);
-        temp[mLength] = 0;
-        mData = temp;
-    } else mData = data;
-    mHashCode = 0;
+    setData(data, length);
 }
 
-MString::MString(const char *data, size_t length, bool copy)
+MString::MString(const MString &other)
+        : mData(nullptr)
 {
-    if (copy) {
-        char *temp = new char[length + 1];
-        memcpy(temp, data, length);
-        temp[length] = 0;
-        mData = temp;
-    } else {
-        mData = data;
-    }
+    setData(other.mData, other.mLength);
+    mHashCode = other.mHashCode;
+}
+
+MString::MString(MString &&other) noexcept
+        : mData(other.mData), mLength(other.mLength), mHashCode(other.mHashCode)
+{
+    other.mData = nullptr;
+}
+
+void MString::setData(const char *data, size_t length)
+{
+    delete[] mData;
+    auto temp = make_unique_array<char[]>(length + 1);
+    memcpy(temp.get(), data, length);
+    temp[length] = 0;
+    mData = temp.release();
     mLength = length;
     mHashCode = 0;
-}
-
-MString::MString(MString &cpy)
-{
-    mLength = cpy.mLength;
-    mHashCode = cpy.mHashCode;
-    char *data = new char[mLength + 1];
-    data[mLength] = 0;
-    memcpy(data, cpy.mData, mLength);
-    mData = data;
 }
 
 int MString::hashCode()
 {
     int h = mHashCode;
     if (mHashCode == 0 && mLength > 0) {
-        for (int i = 0; i < mLength; ++i) {
+        for (size_t i = 0; i < mLength; ++i) {
             h = 31 * h + mData[i];
         }
         mHashCode = h;
@@ -210,7 +227,7 @@ int MString::hashCode()
     return h;
 }
 
-bool MString::equals(MString &other)
+bool MString::equals(const MString &other)
 {
     if (this == &other)return true;
     if (mLength == other.mLength) {
@@ -227,12 +244,12 @@ MString::~MString()
     delete[] mData;
 }
 
-const char *MString::getData()
+const char *MString::getData() const
 {
     return mData;
 }
 
-size_t MString::length()
+size_t MString::length() const
 {
     return mLength;
 }
@@ -245,15 +262,16 @@ void MString::trim()
             begin = i;
         }
     }
-    for (size_t i = mLength-1; i > begin; --i) {
+    for (size_t i = mLength - 1; i > begin; --i) {
         if (mData[i] != ' ') {
-            end = i+1;
+            end = i + 1;
         }
     }
     size_t len = end - begin;
     if (len != mLength) {
-        char * temp = (char *) mData;
-        if (begin != 0) memmove(temp, mData + begin, len);
+        char *temp = const_cast<char *>(mData);
+        if (begin != 0)
+            memmove(temp, mData + begin, len);
         mLength = len;
         temp[mLength] = 0;
     }
@@ -267,24 +285,24 @@ size_t MString::trimToSize()
             begin = i;
         }
     }
-    for (size_t i = mLength-1; i > begin; --i) {
+    for (size_t i = mLength - 1; i > begin; --i) {
         if (mData[i] != ' ') {
-            end = i+1;
+            end = i + 1;
         }
     }
     size_t len = end - begin;
     if (len != mLength) {
-        char * temp = new char[len + 1];
-        memcpy(temp, mData + begin, len);
+        auto temp = make_unique_array<char[]>(len + 1);
+        memcpy(temp.get(), mData + begin, len);
         mLength = len;
         temp[mLength] = 0;
-        delete [] mData;
-        mData = temp;
+        delete[] mData;
+        mData = temp.release();
     }
     return len;
 }
 
-const char &MString::operator[](int i)
+const char &MString::operator[](int i) const
 {
     return mData[i];
 }

@@ -7,19 +7,25 @@
 
 #include "abscamera.h"
 
-class SceneCamera: public AbsCamera{
+class SceneCamera : public AbsCamera
+{
 protected:
     float transMat[32];
     float viewMat[16];
     float distance;
     bool newTrans;
-    float rx,rz;
+    float rx, rz;
 public:
     SceneCamera(float, float, float, float);
+
     void set(float, float, float, float);
+
     void translate(float, float, float);
+
     void rotate(float, float, float);
+
     const float *getViewMat();
+
     ~SceneCamera();
 };
 

@@ -1,21 +1,24 @@
+#include <fstream>
 #include "shaderloader.h"
-#include <stdio.h>
+
 //
 // Created by wjy50 on 2018/2/6.
 //
-int loadShader(const char* fileName, int* ptrLength, char** ptrResult)
+
+using namespace std;
+
+int loadShader(const char *fileName, int *ptrLength, unique_ptr<char[]> &result)
 {
-    FILE* file=fopen(fileName,"rb");
-    if(file)
-    {
-        fread(ptrLength, sizeof(int),1,file);
-        if(*ptrLength > 0)
-        {
-            *ptrResult=new char[(*ptrLength)+1];
-            (*ptrResult)[*ptrLength]=0;
-            fread(*ptrResult, sizeof(char),*ptrLength,file);
+    ifstream file(fileName, ios::binary);
+    if (file) {
+        file.read(reinterpret_cast<char *>(ptrLength), sizeof(int));
+        if (*ptrLength > 0) {
+            auto temp = make_unique_array<char[]>((*ptrLength) + 1);
+            temp[*ptrLength] = 0;
+            file.read(temp.get(), *ptrLength * sizeof(char));
+            result.swap(temp);
         }
-        fclose(file);
+        file.close();
         return 1;
     }
     return 0;

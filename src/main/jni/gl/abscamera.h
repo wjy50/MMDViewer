@@ -7,15 +7,21 @@
 
 #include "../matrix/matrix.h"
 
-class AbsCamera{
+class AbsCamera
+{
 private:
     float projectionM[16];
 public:
     virtual void translate(float, float, float)=0;
+
     virtual void rotate(float, float, float)=0;
-    virtual const float * getViewMat()=0;
+
+    virtual const float *getViewMat()=0;
+
     void setPerspectiveM(float, float, float, float);
-    const float * getProjectionMat();
+
+    const float *getProjectionMat() const;
+
     virtual ~AbsCamera();
 };
 

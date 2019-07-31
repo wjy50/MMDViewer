@@ -5,16 +5,15 @@ android {
         wjy50 {
             keyAlias 'wjy50key'
             keyPassword 'wjywjy50279606'
-            storeFile file('/home/wjy50/Android/projects/wjy50.keystore')
+            storeFile file('/home/wjy50/Android/Projects/wjy50.keystore')
             storePassword 'wjywjy50279606'
         }
     }
-    compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    compileSdkVersion 29
     defaultConfig {
         applicationId "com.wjy50.app.mmdviewer"
         minSdkVersion 18
-        targetSdkVersion 27
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
         ndk {
@@ -22,9 +21,11 @@ android {
         }
         externalNativeBuild {
             cmake {
-                cppFlags '-std=c++11'
+                cFlags '-O2 -Wall -Wextra'
+                cppFlags '-std=c++11 -O2 -Wall -Wextra'
             }
         }
+        signingConfig signingConfigs.wjy50
     }
     buildTypes {
         release {
@@ -35,15 +36,14 @@ android {
             debuggable false
             jniDebuggable false
             renderscriptDebuggable false
+            multiDexEnabled = true
         }
     }
-
     sourceSets {
         main {
-            jniLibs.srcDirs=['libs']
+            jniLibs.srcDirs = ['libs']
         }
     }
-
     productFlavors {
     }
     externalNativeBuild {
@@ -51,8 +51,13 @@ android {
             path 'CMakeLists.txt'
         }
     }
+    buildToolsVersion '28.0.3'
+    compileOptions {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+    }
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar','*.so.*'], dir: 'libs')
+    implementation fileTree(include: ['*.jar', '*.so.*'], dir: 'libs')
 }

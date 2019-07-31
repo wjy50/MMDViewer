@@ -5,9 +5,20 @@
 #ifndef MMDVIEWER_CAMERAKEYFRAME_H
 #define MMDVIEWER_CAMERAKEYFRAME_H
 
-class CameraKeyFrame{
+#include <fstream>
+#include "vmdkeyframe.h"
+
+class CameraKeyFrame : public VMDKeyFrame
+{
+private:
+    float distance;
+    float position[3];
+    float euler[3];
+    int aspect;
 public:
-    void read(FILE* file);
+    CameraKeyFrame();
+
+    void read(std::ifstream &file);
 };
 
 #endif //MMDVIEWER_CAMERAKEYFRAME_H

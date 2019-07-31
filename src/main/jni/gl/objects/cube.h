@@ -7,7 +7,8 @@
 #ifndef MMDVIEWER_CUBE_H
 #define MMDVIEWER_CUBE_H
 
-class Cube:public GLObject{
+class Cube : public GLObject
+{
 public:
     Cube(float width, float height, float thickness);
 };

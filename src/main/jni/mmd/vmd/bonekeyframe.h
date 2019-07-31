@@ -5,11 +5,22 @@
 #ifndef MMDVIEWER_BONEKEYFRAME_H
 #define MMDVIEWER_BONEKEYFRAME_H
 
-#include <stdio.h>
+#include "vmdkeyframe.h"
+#include "../../utils/mstring.h"
 
-class BoneKeyFrame{
+class BoneKeyFrame : public VMDKeyFrame
+{
+protected:
+    MString name;
+
+    float translation[3];
+    float rotation[4];
 public:
-    void read(FILE* file);
+    BoneKeyFrame();
+
+    void read(std::ifstream &file);
+
+    const MString &getName() const;
 };
 
 #endif //MMDVIEWER_BONEKEYFRAME_H
