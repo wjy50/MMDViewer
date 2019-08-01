@@ -70,37 +70,25 @@ void TextureImage::tryPng(const std::string &filePath)
         if (pngPtrWrapper.getPngPtr() && pngPtrWrapper.getInfoPtr()) {
             png_init_io(pngPtrWrapper.getPngPtr(), file.get());
             png_read_png(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr(), PNG_TRANSFORM_EXPAND, 0);
-            this->width = static_cast<int>(png_get_image_width(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr()));
-            this->height = static_cast<int>(png_get_image_height(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr()));
+            width = static_cast<int>(png_get_image_width(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr()));
+            height = static_cast<int>(png_get_image_height(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr()));
             int color_type = png_get_color_type(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr());
-            size_t size = static_cast<size_t>(width * height * (color_type == PNG_COLOR_TYPE_RGBA ? 4 : 3));
-            auto color = make_unique_array<unsigned char[]>(size);
             png_bytep *row_pointers = png_get_rows(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr());
+            int byteCount;
             if (color_type == PNG_COLOR_TYPE_RGBA) {
                 colorType = TEX_ARGB;
-                for (int i = 0; i < height; ++i) {
-                    int o = (i * this->width) * 4;
-                    for (int j = 0; j < width; ++j) {
-                        int offset = j * 4;
-                        color[o + offset] = row_pointers[i][offset];
-                        color[o + offset + 1] = row_pointers[i][offset + 1];
-                        color[o + offset + 2] = row_pointers[i][offset + 2];
-                        color[o + offset + 3] = row_pointers[i][offset + 3];
-                    }
-                }
+                byteCount = 4;
             } else if (color_type == PNG_COLOR_TYPE_RGB) {
                 colorType = TEX_RGB;
-                for (int i = 0; i < height; ++i) {
-                    int o = i * this->width * 3;
-                    for (int j = 0; j < width; ++j) {
-                        int offset = j * 3;
-                        color[o + offset] = row_pointers[i][offset];
-                        color[o + offset + 1] = row_pointers[i][offset + 1];
-                        color[o + offset + 2] = row_pointers[i][offset + 2];
-                    }
-                }
+                byteCount = 3;
             } else {
                 throw TextureLoadException(UNSUPPORTED_PNG_COLOR_TYPE);
+            }
+            int rowSize = 4 * ((width * byteCount + 3) / 4);
+            auto color = make_unique_array<unsigned char[]>(rowSize * height);
+            for (int i = 0; i < height; ++i) {
+                int o = i * rowSize;
+                memcpy(color.get() + o, row_pointers[i], static_cast<size_t>(width * byteCount));
             }
             data = color.release();
             return;

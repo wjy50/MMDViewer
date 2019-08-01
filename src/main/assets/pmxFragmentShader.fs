@@ -43,10 +43,11 @@ void main()
     vec4 textureColor = uTextureCoefficient;
     if (uTextureModes.x > 0)
         textureColor *= texture2D(uSamplers[0], vUV);
+    vec2 sphereUV = sphereCoordinate(position, normal);
     if (uTextureModes.y == 1)
-        textureColor.rgb += (uSphereCoefficient * texture2D(uSamplers[1], sphereCoordinate(position, normal))).rgb;
+        textureColor.rgb += (uSphereCoefficient * texture2D(uSamplers[1], sphereUV)).rgb;
     else if (uTextureModes.y != 0)
-        textureColor *= texture2D(uSamplers[1], sphereCoordinate(position, normal)) * uSphereCoefficient;
+        textureColor *= texture2D(uSamplers[1], sphereUV) * uSphereCoefficient;
     if(textureColor.a < 0.01)
         discard;
     vec4 diffuse;

@@ -20,10 +20,8 @@ void main()
 {
     vec4 position4 = vec4(aPosition, 1.0);
     vec4 normal4 = vec4(aNormal, 0.0);
-    vec4 position = vec4(0.0);
-    vec4 normal = vec4(0.0);
-    position += uBoneMats[int(aBones[0])] * position4 * aWeights[0];
-    normal += uBoneMats[int(aBones[0])] * normal4 * aWeights[0];
+    vec4 position = uBoneMats[int(aBones[0])] * position4 * aWeights[0];
+    vec4 normal = uBoneMats[int(aBones[0])] * normal4 * aWeights[0];
     if (aBones[1] >= 0.0) {
         position += uBoneMats[int(aBones[1])] * position4 * aWeights[1];
         normal += uBoneMats[int(aBones[1])] * normal4 * aWeights[1];

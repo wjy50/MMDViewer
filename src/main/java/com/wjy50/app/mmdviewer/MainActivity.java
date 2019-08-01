@@ -18,7 +18,7 @@ public class MainActivity extends Activity
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        final boolean b = false;
+        final boolean b = true;
         if (b) {
             byte[] buffer = new byte[1024];
             int count;
@@ -45,6 +45,10 @@ public class MainActivity extends Activity
                 }
             }
         }
+        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            testDocumentTree();
+            return;
+        }*/
         Intent intent = new Intent(this, GLActivity.class);
         if (getIntent().getAction() != null && getIntent().getAction().equals(Intent.ACTION_VIEW)) {
             if (getIntent().getData() != null) {
@@ -61,4 +65,27 @@ public class MainActivity extends Activity
         startActivity(intent);
         finish();
     }
+
+    /*@RequiresApi(android.os.Build.VERSION_CODES.LOLLIPOP)
+    private void testDocumentTree()
+    {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        startActivityForResult(intent, 123);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        super.onActivityResult(requestCode, resultCode, data);
+        System.out.println("result code = " + resultCode);
+        if (resultCode == RESULT_OK && requestCode == 123 && data.getData() != null) {
+            Uri treeUri = data.getData();
+            System.out.println(treeUri);
+            DocumentFile pickedDir = DocumentFile.fromTreeUri(this, treeUri);
+            if (pickedDir != null) {
+                System.out.println(pickedDir.listFiles()[0].listFiles()[0].getUri());
+                new DocumentsProvider().
+            }
+        }
+    }*/
 }

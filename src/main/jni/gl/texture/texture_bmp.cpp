@@ -48,24 +48,35 @@ void TextureImage::tryBmp(const std::string &filePath)
             file.read(reinterpret_cast<char *>(&yPixPerMeter), sizeof(yPixPerMeter));
             file.read(reinterpret_cast<char *>(&colorUsed), sizeof(colorUsed));
             file.read(reinterpret_cast<char *>(&importantColor), sizeof(importantColor));
-            this->width = width;
-            this->height = height;
-            if (imageSize == 0)
-                imageSize = width * height * bitCount / 8;
             long curPos = file.tellg();
             if (curPos == offset) {
-                auto color = make_unique_array<unsigned char[]>(imageSize);
+                bool fromBottom = true;
+                if (height < 0) {
+                    height = -height;
+                    fromBottom = false;
+                }
+                this->width = width;
+                this->height = height;
                 int byteCount = bitCount  / 8;
-                int pitch = width * byteCount;
+                int rowSize = 4 * ((width * byteCount + 3) / 4);
+                if (imageSize == 0)
+                    imageSize = rowSize * height;
+                auto color = make_unique_array<unsigned char[]>(imageSize);
                 for (int i = 0; i < height; ++i) {
-                    int o = (height - i - 1) * pitch;
-                    file.read(reinterpret_cast<char *>(color.get() + o), sizeof(unsigned char) * pitch);
+                    int o;
+                    if (fromBottom)
+                        o = (height - i - 1) * rowSize;
+                    else
+                        o = i * rowSize;
+                    file.read(reinterpret_cast<char *>(color.get() + o), sizeof(unsigned char) * rowSize);
                 }
                 // file.read(reinterpret_cast<char *>(color.get()), sizeof(unsigned char) * imageSize);
                 file.close();
                 colorType = bitCount == 24 ? TEX_RGB : TEX_ARGB;
-                for (int i = 0; i < imageSize; i += byteCount) {
-                    flipBytes(reinterpret_cast<char *>(color.get() + i), 3);
+                for (int i = 0; i < height; ++i) {
+                    for (int j = 0; j < width; ++j) {
+                        flipBytes(reinterpret_cast<char *>(color.get() + i * rowSize + j * byteCount), 3);
+                    }
                 }
                 data = color.release();
                 return;
