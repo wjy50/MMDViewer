@@ -70,8 +70,8 @@ void TextureImage::tryPng(const std::string &filePath)
         if (pngPtrWrapper.getPngPtr() && pngPtrWrapper.getInfoPtr()) {
             png_init_io(pngPtrWrapper.getPngPtr(), file.get());
             png_read_png(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr(), PNG_TRANSFORM_EXPAND, 0);
-            width = static_cast<int>(png_get_image_width(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr()));
-            height = static_cast<int>(png_get_image_height(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr()));
+            this->width = static_cast<int>(png_get_image_width(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr()));
+            this->height = static_cast<int>(png_get_image_height(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr()));
             int color_type = png_get_color_type(pngPtrWrapper.getPngPtr(), pngPtrWrapper.getInfoPtr());
             size_t size = static_cast<size_t>(width * height * (color_type == PNG_COLOR_TYPE_RGBA ? 4 : 3));
             auto color = make_unique_array<unsigned char[]>(size);
@@ -79,7 +79,7 @@ void TextureImage::tryPng(const std::string &filePath)
             if (color_type == PNG_COLOR_TYPE_RGBA) {
                 colorType = TEX_ARGB;
                 for (int i = 0; i < height; ++i) {
-                    int o = (i * width) * 4;
+                    int o = (i * this->width) * 4;
                     for (int j = 0; j < width; ++j) {
                         int offset = j * 4;
                         color[o + offset] = row_pointers[i][offset];
@@ -91,7 +91,7 @@ void TextureImage::tryPng(const std::string &filePath)
             } else if (color_type == PNG_COLOR_TYPE_RGB) {
                 colorType = TEX_RGB;
                 for (int i = 0; i < height; ++i) {
-                    int o = i * width * 3;
+                    int o = i * this->width * 3;
                     for (int j = 0; j < width; ++j) {
                         int offset = j * 3;
                         color[o + offset] = row_pointers[i][offset];

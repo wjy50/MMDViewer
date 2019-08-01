@@ -948,7 +948,7 @@ void PMXReader::readBones(ifstream &file)
 
 void PMXReader::readMorphs(ifstream &file)
 {
-    file.read(reinterpret_cast<char *>(&morphCount), sizeof(int));
+    file.read(reinterpret_cast<char *>(&morphCount), sizeof(morphCount));
     if (morphCount > 0) {
         morphs = new PMXMorph[morphCount];
         for (int i = 0; i < morphCount; ++i) {
@@ -1072,7 +1072,7 @@ float PMXReader::getMorphFraction(int index) const
 
 void PMXReader::setMorphFraction(int index, float f)
 {
-    f = clamp(0, 1, f);
+    f = clamp(0.0f, 1.0f, f);
     float delta = morphs[index].setFraction(f);
     int count = morphs[index].getMorphDataCount();
     switch (morphs[index].getKind()) {

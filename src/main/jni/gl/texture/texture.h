@@ -64,6 +64,8 @@ private:
 public:
     TextureLoadException(TextureLoadError error);
 
+    TextureLoadError getError() const;
+
     const char * what() const noexcept override;
 };
 

@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "texture.h"
+#include "../../utils/mathutils.h"
 
 using namespace std;
 
@@ -47,6 +48,8 @@ void TextureImage::tryBmp(const std::string &filePath)
             file.read(reinterpret_cast<char *>(&yPixPerMeter), sizeof(yPixPerMeter));
             file.read(reinterpret_cast<char *>(&colorUsed), sizeof(colorUsed));
             file.read(reinterpret_cast<char *>(&importantColor), sizeof(importantColor));
+            this->width = width;
+            this->height = height;
             if (imageSize == 0)
                 imageSize = width * height * bitCount / 8;
             long curPos = file.tellg();
@@ -58,17 +61,13 @@ void TextureImage::tryBmp(const std::string &filePath)
                     int o = (height - i - 1) * pitch;
                     file.read(reinterpret_cast<char *>(color.get() + o), sizeof(unsigned char) * pitch);
                 }
-                file.read(reinterpret_cast<char *>(color.get()), sizeof(unsigned char) * imageSize);
+                // file.read(reinterpret_cast<char *>(color.get()), sizeof(unsigned char) * imageSize);
                 file.close();
-                this->width = width;
-                this->height = height;
-                data = color.release();
                 colorType = bitCount == 24 ? TEX_RGB : TEX_ARGB;
                 for (int i = 0; i < imageSize; i += byteCount) {
-                    data[i + 2] ^= data[i];
-                    data[i] ^= data[i + 2];
-                    data[i + 2] ^= data[i];
+                    flipBytes(reinterpret_cast<char *>(color.get() + i), 3);
                 }
+                data = color.release();
                 return;
             }
         } else {

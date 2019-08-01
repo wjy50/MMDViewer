@@ -5,19 +5,18 @@
 #ifndef MMDVIEWER_MATHUTILS_H
 #define MMDVIEWER_MATHUTILS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <algorithm>
 
 #define CHECK_FLAG(a, b) (((a) & (b)) == (b))
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define RAD_TO_DEG (180 * M_1_PI)
 
-float clamp(float low, float high, float f);
+template <typename T>
+T clamp(T low, T high, T f)
+{
+    return std::min(std::max(low, f), high);
+}
 
-#ifdef __cplusplus
-};
-#endif
+void flipBytes(char *p, int n);
 
 #endif //MMDVIEWER_MATHUTILS_H

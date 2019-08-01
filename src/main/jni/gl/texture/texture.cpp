@@ -26,6 +26,8 @@ TextureImage::TextureImage(const std::string &filePath) : data(nullptr)
                 tryPng(filePath);
                 return;
             } catch (const TextureLoadException &e) {
+                if (e.getError() == OPEN_FILE_FAILED)
+                    throw e;
                 LOG_PRINTLN(e.what());
             }
             tried = 1;

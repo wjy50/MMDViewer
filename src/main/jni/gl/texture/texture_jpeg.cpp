@@ -51,7 +51,7 @@ void TextureImage::tryJpeg(const std::string &filePath)
             if (r == 0) {
                 int pixelFormat = TJPF_RGB;
                 int pitch = width * tjPixelSize[pixelFormat];
-                size_t destSize = (size_t) pitch * height;
+                size_t destSize = static_cast<size_t>(pitch * height);
                 auto temp = make_unique_array<unsigned char[]>(destSize);
                 r = tjDecompress(
                         tjHandleWrapper.get(), reinterpret_cast<unsigned char *>(jpegBuffer.get()),

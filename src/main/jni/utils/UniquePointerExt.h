@@ -8,7 +8,7 @@
 #include <memory>
 
 template<typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args)
+std::unique_ptr<T> make_unique(Args &&... args)
 {
     static_assert(!std::is_array<T>::value, "T must not be array");
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
@@ -17,8 +17,8 @@ std::unique_ptr<T> make_unique(Args&&... args)
 template<typename T, typename SizeT>
 std::unique_ptr<T> make_unique_array(SizeT size)
 {
-    static_assert(std::is_array<T>::value&& std::extent<T>::value==0,"T must be dynamic array");
-    using U=typename std::remove_extent<T>::type;
+    static_assert(std::is_array<T>::value && std::extent<T>::value == 0, "T must be dynamic array");
+    using U = typename std::remove_extent<T>::type;
     return (std::unique_ptr<T>(new U[size]));
 }
 

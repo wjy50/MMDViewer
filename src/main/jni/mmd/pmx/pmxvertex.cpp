@@ -25,7 +25,7 @@ void PMXVertex::read(ifstream &file, PMXInfo *info, float *coordinate, float *no
     file.read(reinterpret_cast<char *>(normal), 3 * sizeof(float));
     normal[2] = -normal[2];
     file.read(reinterpret_cast<char *>(uv), 2 * sizeof(float));
-    int sk = MIN(info->UVACount, 4);
+    int sk = min<unsigned char>(info->UVACount, 4);
     file.seekg(sk * 16, ios::cur);
     file.read(&deform, sizeof(char));
     switch (deform) {

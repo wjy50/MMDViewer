@@ -8,6 +8,11 @@ TextureLoadException::TextureLoadException(TextureLoadError error)
 : error(error)
 {}
 
+TextureLoadError TextureLoadException::getError() const
+{
+    return error;
+}
+
 const char* TextureLoadException::what() const noexcept
 {
     switch (error) {

@@ -32,6 +32,12 @@ void PMXTexture::initGLTexture()
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
             GLenum format = image.getColorType() == TEX_ARGB ? GL_RGBA : GL_RGB;
             LOG_PRINTF("gen tex err=%d", glGetError());
+            for (int i = 32; i >= 1; i /= 2) {
+                if (image.getWidth() % i == 0) {
+                    glPixelStorei(GL_UNPACK_ALIGNMENT, i);
+                    break;
+                }
+            }
             glTexImage2D(GL_TEXTURE_2D, 0, format, image.getWidth(), image.getHeight(), 0, format,
                          GL_UNSIGNED_BYTE, image.get());
             LOG_PRINTF("image2d err=%d", glGetError());

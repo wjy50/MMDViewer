@@ -178,12 +178,12 @@ void PMXMorph::read(ifstream &file, PMXInfo *info)
 {
     name.readString(file, static_cast<MStringEncoding>(info->encoding), UTF_8);
     nameE.readString(file, static_cast<MStringEncoding>(info->encoding), UTF_8);
-    file.read(&panel, sizeof(char));
-    file.read(&kind, sizeof(char));
-    file.read(reinterpret_cast<char *>(&count), sizeof(int));
+    file.read(&panel, sizeof(panel));
+    file.read(&kind, sizeof(kind));
+    file.read(reinterpret_cast<char *>(&count), sizeof(count));
     if (count > 0) {
         auto data = make_unique_array<PMXMorphData *[]>(count);
-        memset(data.get(), count, sizeof(PMXMorphData*));
+        memset(data.get(), 0, sizeof(PMXMorphData*) * count);
         switch (kind) {
             case 0:
             case 9:

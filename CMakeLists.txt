@@ -57,7 +57,7 @@ add_library(
         src/main/jni/mmd/vmd/lightkeyframe.cpp
         src/main/jni/mmd/vmd/ikkeyframe.cpp
         src/main/jni/utils/mstring.cpp
-        src/main/jni/utils/mathutils.c
+        src/main/jni/utils/mathutils.cpp
         src/main/jni/vector/vector.c
         src/main/jni/quaternion/quaternion.c
 )

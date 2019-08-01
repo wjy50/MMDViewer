@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "texture.h"
+#include "../../utils/mathutils.h"
 
 using namespace std;
 
@@ -36,116 +37,76 @@ void TextureImage::tryTga(const std::string &filePath)
         int area = width * height;
         int byteCount = bitsPerPix / 8;
         int size = area * byteCount;
+        if (bitsPerPix == 32) {
+            colorType = TEX_ARGB;
+        } else if (bitsPerPix == 24) {
+            colorType = TEX_RGB;
+        } else {
+            throw TextureLoadException(UNSUPPORTED_TGA_COLOR_TYPE);
+        }
         auto color = make_unique_array<unsigned char[]>(size);
         if (type == 2) {
-            if (bitsPerPix == 32) {
-                colorType = TEX_ARGB;
-            } else if (bitsPerPix == 24) {
-                colorType = TEX_RGB;
-            } else {
-                throw TextureLoadException(UNSUPPORTED_TGA_COLOR_TYPE);
-            }
-            int pitch = width * byteCount;
-            for (int i = 0; i < height; ++i) {
-                int offset = (height - i - 1) * pitch;
+            int pitch = this->width * byteCount;
+            for (int i = 0; i < this->height; ++i) {
+                int offset = (this->height - i - 1) * width * byteCount;
                 file.read(reinterpret_cast<char *>(color.get() + offset), sizeof(unsigned char) * pitch);
             }
         } else if (type == 10) {
             int hi = 0, wi = 0;
-            int offset = (height - hi - 1) * width;
-            if (bitsPerPix == 32) {
-                colorType = TEX_ARGB;
-                unsigned int *colorInt = reinterpret_cast<unsigned int *>(color.get());
-                while (hi < height) {
-                    unsigned char head;
-                    file.read(reinterpret_cast<char *>(&head), sizeof(head));
-                    unsigned char dataType = head >> 7;
-                    unsigned char len = (unsigned char) ((head & 0x7f) + 1);
-                    if (dataType == 0) {
-                        while (wi + len >= width) {
-                            int count = width - wi;
-                            file.read(reinterpret_cast<char *>(colorInt + offset + wi), sizeof(unsigned int) * count);
-                            wi = 0;
-                            ++hi;
-                            offset = (height - hi - 1) * width;
-                            len -= count;
-                        }
-                        file.read(reinterpret_cast<char *>(colorInt + offset + wi), sizeof(unsigned int) * len);
-                        wi += len;
-                    } else {
-                        unsigned int c;
-                        file.read(reinterpret_cast<char *>(&c), sizeof(c));
-                        while (wi + len >= width) {
-                            int count = width - wi;
-                            for (int i = 0; i < count; ++i) {
-                                colorInt[offset + wi + i] = c;
-                            }
-                            wi = 0;
-                            ++hi;
-                            offset = (height - hi - 1) * width;
-                            len -= count;
-                        }
-                        for (int i = 0; i < len; ++i) {
-                            colorInt[offset + wi + i] = c;
-                        }
-                        wi += len;
+            int offset = (this->height - hi - 1) * width;
+            while (hi < this->height) {
+                unsigned char head;
+                file.read(reinterpret_cast<char *>(&head), sizeof(head));
+                unsigned char dataType = head >> 7;
+                unsigned char len = static_cast<unsigned char>((head & 0x7f) + 1);
+                if (dataType == 0) {
+                    while (wi + len >= this->width) {
+                        int count = this->width - wi;
+                        file.read(reinterpret_cast<char *>(color.get() + (offset + wi) * byteCount),
+                                  sizeof(unsigned char) * count * byteCount);
+                        wi = 0;
+                        hi++;
+                        offset = (this->height - hi - 1) * width;
+                        len -= count;
                     }
-                }
-            } else if (bitsPerPix == 24) {
-                colorType = TEX_RGB;
-                while (hi < height) {
-                    unsigned char head;
-                    file.read(reinterpret_cast<char *>(&head), sizeof(head));
-                    unsigned char dataType = head >> 7;
-                    unsigned char len = (unsigned char) ((head & 0x7f) + 1);
-                    if (dataType == 0) {
-                        while (wi + len >= width) {
-                            int count = width - wi;
-                            file.read(reinterpret_cast<char *>(color.get() + (offset + wi) * 3),
-                                      sizeof(unsigned char) * count * 3);
-                            wi = 0;
-                            hi++;
-                            offset = (height - hi - 1) * width;
-                            len -= count;
+                    file.read(reinterpret_cast<char *>(color.get() + (offset + wi) * byteCount),
+                            sizeof(unsigned char) * len * byteCount);
+                    wi += len;
+                } else {
+                    unsigned int c;
+                    file.read(reinterpret_cast<char *>(&c), sizeof(unsigned char) * byteCount);
+                    while (wi + len >= this->width) {
+                        int count = this->width - wi;
+                        for (int i = 0; i < count; ++i) {
+                            int o = (offset + wi + i) * byteCount;
+                            color[o] = static_cast<unsigned char>(c & 0xff);
+                            color[o + 1] = static_cast<unsigned char>((c >> 8) & 0xff);
+                            color[o + 2] = static_cast<unsigned char>((c >> 16) & 0xff);
+                            if (colorType == TEX_ARGB)
+                                color[o + 3] = static_cast<unsigned char>((c >> 24) & 0xff);
                         }
-                        file.read(reinterpret_cast<char *>(color.get() + (offset + wi) * 3), sizeof(unsigned char) * len * 3);
-                        wi += len;
-                    } else {
-                        unsigned int c;
-                        file.read(reinterpret_cast<char *>(&c), sizeof(c) * 3);
-                        while (wi + len >= width) {
-                            int count = width - wi;
-                            for (int i = 0; i < count; ++i) {
-                                int o = (offset + wi + i) * 3;
-                                color[o] = (unsigned char) ((c >> 16) & 0xff);
-                                color[o + 1] = (unsigned char) ((c >> 8) & 0xff);
-                                color[o + 2] = (unsigned char) (c & 0xff);
-                            }
-                            wi = 0;
-                            hi++;
-                            offset = (height - hi - 1) * width;
-                            len -= count;
-                        }
-                        for (int i = 0; i < len; ++i) {
-                            int o = (offset + wi + i) * 3;
-                            color[o] = (unsigned char) (c & 0xff);
-                            color[o + 1] = (unsigned char) ((c >> 8) & 0xff);
-                            color[o + 2] = (unsigned char) ((c >> 16) & 0xff);
-                        }
-                        wi += len;
+                        wi = 0;
+                        hi++;
+                        offset = (this->height - hi - 1) * width;
+                        len -= count;
                     }
+                    for (int i = 0; i < len; ++i) {
+                        int o = (offset + wi + i) * byteCount;
+                        color[o] = static_cast<unsigned char>(c & 0xff);
+                        color[o + 1] = static_cast<unsigned char>((c >> 8) & 0xff);
+                        color[o + 2] = static_cast<unsigned char>((c >> 16) & 0xff);
+                        if (colorType == TEX_ARGB)
+                            color[o + 3] = static_cast<unsigned char>((c >> 24) & 0xff);
+                    }
+                    wi += len;
                 }
-            } else {
-                throw TextureLoadException(UNSUPPORTED_TGA_COLOR_TYPE);
             }
         } else {
             throw TextureLoadException(UNKNOWN_TGA_TYPE);
         }
         for (int i = 0; i < area; ++i) {
             int offset = i * byteCount;
-            color[offset + 2] ^= color[offset];
-            color[offset] = color[offset + 2] ^ color[offset];
-            color[offset + 2] ^= color[offset];
+            flipBytes(reinterpret_cast<char *>(color.get() + offset), 3);
         }
         data = color.release();
     } else

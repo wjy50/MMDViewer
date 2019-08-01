@@ -32,7 +32,7 @@ void Application::onTouchEvent(int action, float x, float y)
             if (y + (renderer->getSurfaceHeight() >> 4) > renderer->getSurfaceHeight()) {
                 switch ((int) x * 3 / renderer->getSurfaceWidth()) {
                     case 0:
-                        if (--currentMorph > renderer->getModel()->getMorphCount())
+                        if (--currentMorph < 0)
                             currentMorph = renderer->getModel()->getMorphCount() - 1;
                         break;
                     case 2:
