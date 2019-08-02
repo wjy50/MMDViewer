@@ -36,6 +36,7 @@ add_library(
         src/main/jni/gl/scenecamera.cpp
         src/main/jni/gl/shaderloader.cpp
         src/main/jni/gl/environment.cpp
+        src/main/jni/gl/glworld.cpp
         src/main/jni/gl/texture/texture.cpp
         src/main/jni/gl/texture/texture_jpeg.cpp
         src/main/jni/gl/texture/texture_png.cpp
@@ -49,6 +50,13 @@ add_library(
         src/main/jni/mmd/pmx/pmxbone.cpp
         src/main/jni/mmd/pmx/pmxmorph.cpp
         src/main/jni/mmd/pmx/pmxreader.cpp
+        src/main/jni/mmd/pmx/pmxobject.cpp
+        src/main/jni/mmd/pmx/pmx_exception.cpp
+        src/main/jni/mmd/pmx/pmxobject_transform_ik.cpp
+        src/main/jni/mmd/pmx/pmxobject_transform.cpp
+        src/main/jni/mmd/pmx/pmxobject_shader.cpp
+        src/main/jni/mmd/pmx/pmxobject_morph.cpp
+        src/main/jni/mmd/pmx/pmxobject_shader_holder.cpp
         src/main/jni/mmd/vmd/vmdreader.cpp
         src/main/jni/mmd/vmd/vmdkeyframe.cpp
         src/main/jni/mmd/vmd/bonekeyframe.cpp

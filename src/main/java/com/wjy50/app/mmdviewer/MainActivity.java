@@ -18,7 +18,7 @@ public class MainActivity extends Activity
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        final boolean b = true;
+        final boolean b = false;
         if (b) {
             byte[] buffer = new byte[1024];
             int count;

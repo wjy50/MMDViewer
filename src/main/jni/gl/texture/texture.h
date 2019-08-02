@@ -57,7 +57,7 @@ typedef enum TEXTURE_LOAD_ERROR
     UNSUPPORTED_FILE_TYPE
 } TextureLoadError;
 
-class TextureLoadException : public std::exception
+class TextureLoadException : public std::runtime_error
 {
 private:
     TextureLoadError error;

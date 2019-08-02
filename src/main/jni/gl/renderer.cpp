@@ -3,6 +3,7 @@
 //
 #include "renderer.h"
 #include "../utils/debugutils.h"
+#include "../mmd/pmx/pmxreader.h"
 
 Renderer::Renderer()
 : surfaceWidth(0), surfaceHeight(0), camera(nullptr),
@@ -138,15 +139,16 @@ AbsCamera *Renderer::getCamera() const
     return camera;
 }
 
-PMXReader *Renderer::getModel() const
+PMXObject &Renderer::getModel() const
 {
-    return pmx;
+    return *pmx;
 }
 
 void Renderer::addPMXModel(const char *path)
 {
     delete pmx;
-    pmx = new PMXReader(path);
+    PMXReader pmxReader(path);
+    pmx = new PMXObject(pmxReader.read());
     pmx->initShadowMapShader();
 }
 

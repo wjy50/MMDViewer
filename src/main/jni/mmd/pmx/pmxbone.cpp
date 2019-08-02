@@ -170,7 +170,7 @@ float *PMXBone::getLocalMatWithAppend() const
 
 float *PMXBone::getIKMat() const
 {
-    return ikMat;
+    return (ikMat && ikMatEnabled) ? ikMat : nullptr;
 }
 
 void PMXBone::enableIKMat()

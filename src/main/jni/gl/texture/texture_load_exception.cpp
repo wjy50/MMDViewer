@@ -5,7 +5,7 @@
 #include "texture.h"
 
 TextureLoadException::TextureLoadException(TextureLoadError error)
-: error(error)
+: runtime_error("Texture load exception"), error(error)
 {}
 
 TextureLoadError TextureLoadException::getError() const

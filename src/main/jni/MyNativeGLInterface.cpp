@@ -9,7 +9,7 @@ JNIEXPORT void JNICALL
 Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeOnSurfaceCreate(JNIEnv *env, jclass c,
                                                                               jlong pApplication)
 {
-    reinterpret_cast<Application*>(pApplication)->getRenderer()->onSurfaceCreate();
+    reinterpret_cast<Application*>(pApplication)->getRenderer().onSurfaceCreate();
     //glBindFramebuffer(GL_FRAMEBUFFER,GL_NONE);
 }
 
@@ -20,14 +20,14 @@ Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeOnSurfaceChanged(J
                                                                                jint width,
                                                                                jint height)
 {
-    reinterpret_cast<Application*>(pApplication)->getRenderer()->onSurfaceChanged(width, height);
+    reinterpret_cast<Application*>(pApplication)->getRenderer().onSurfaceChanged(width, height);
 }
 
 JNIEXPORT void JNICALL
 Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeOnDrawFrame(JNIEnv *env, jclass c,
                                                                           jlong pApplication)
 {
-    reinterpret_cast<Application*>(pApplication)->getRenderer()->onDrawFrame();
+    reinterpret_cast<Application*>(pApplication)->getRenderer().onDrawFrame();
 }
 
 JNIEXPORT jlong JNICALL
@@ -59,7 +59,7 @@ Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeAddPMXModel(JNIEnv
                                                                           jstring jPath)
 {
     const char *cPath = (*env).GetStringUTFChars(jPath, 0);
-    reinterpret_cast<Application*>(pApplication)->getRenderer()->addPMXModel(cPath);
+    reinterpret_cast<Application*>(pApplication)->getRenderer().addPMXModel(cPath);
     LOG_PRINTLN(cPath);
     (*env).ReleaseStringUTFChars(jPath, cPath);
 }
@@ -70,7 +70,7 @@ Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeAddVMDMotion(JNIEn
                                                                            jstring jPath)
 {
     const char *cPath = (*env).GetStringUTFChars(jPath, 0);
-    reinterpret_cast<Application*>(pApplication)->getRenderer()->addVMDMotion(cPath);
+    reinterpret_cast<Application*>(pApplication)->getRenderer().addVMDMotion(cPath);
     LOG_PRINTLN(cPath);
     (*env).ReleaseStringUTFChars(jPath, cPath);
 }

@@ -14,14 +14,14 @@
 class Application
 {
 private:
-    Renderer *renderer;
+    Renderer renderer;
     AbsCamera *defaultCamera;
     float dx, dy, x, y;
     int currentMorph;
 public:
     Application();
 
-    Renderer *getRenderer() const;
+    Renderer &getRenderer();
 
     void onTouchEvent(int action, float x, float y);
 

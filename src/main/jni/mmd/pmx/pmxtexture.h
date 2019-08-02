@@ -11,13 +11,13 @@
 class PMXTexture
 {
 private:
-    const char *path;
+    std::string path;
     GLuint textureId;
     bool mHasAlpha;
 public:
     PMXTexture();
 
-    void read(std::ifstream &file, MStringEncoding encoding, const char *pmxPath, int pathLength);
+    void read(std::ifstream &file, MStringEncoding encoding, const std::string &parentPath);
 
     GLuint getTextureId();
 

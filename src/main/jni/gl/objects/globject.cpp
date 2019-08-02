@@ -11,13 +11,84 @@
 using namespace std;
 
 GLObject::GLObject()
-: vertices(nullptr), indices(nullptr), hasVertexBuffers(false)
+        : vertices(nullptr), indices(nullptr), hasVertexBuffers(false)
 {
     setIdentityM(modelMat);
     setAmbient(0, 0, 0);
     setDiffuse(1, 1, 1, 1);
     setSpecular(0, 0, 0);
     setShininess(1);
+}
+
+GLObject::GLObject(GLObject &&other) noexcept
+        : vertexCount(other.vertexCount), vertices(other.vertices), normals(other.normals),
+          indexCount(other.indexCount), indices(other.indices),
+          hasVertexBuffers(other.hasVertexBuffers), mProgram(other.mProgram),
+          mVertexShader(other.mVertexShader), mFragmentShader(other.mFragmentShader),
+          mPositionHandle(other.mPositionHandle), mNormalHandle(other.mNormalHandle),
+          mSunPositionHandle(other.mSunPositionHandle),
+          mModelMatHandle(other.mModelMatHandle), mViewMatHandle(other.mViewMatHandle),
+          mProjectionMatHandle(other.mProjectionMatHandle),
+          mSunLightStrengthHandle(other.mSunLightStrengthHandle),
+          mAmbientHandle(other.mAmbientHandle), mDiffuseHandle(other.mDiffuseHandle),
+          mSpecularHandle(other.mSpecularHandle), mShininessHandle(other.mShininessHandle),
+          shininess(other.shininess)
+{
+    other.vertices = nullptr;
+    other.normals = nullptr;
+    other.indices = nullptr;
+    memcpy(bufferIds, other.bufferIds, sizeof(bufferIds));
+    memcpy(modelMat, other.modelMat, sizeof(modelMat));
+    memcpy(ambient, other.ambient, sizeof(ambient));
+    memcpy(diffuse, other.diffuse, sizeof(diffuse));
+    memcpy(specular, other.specular, sizeof(specular));
+}
+
+GLObject &GLObject::operator=(GLObject &&other) noexcept
+{
+    delete[] vertices;
+    delete[] normals;
+    delete[] indices;
+
+    vertexCount = other.vertexCount;
+    vertices = other.vertices;
+    normals = other.normals;
+
+    indexCount = other.indexCount;
+    indices = other.indices;
+    hasVertexBuffers = other.hasVertexBuffers;
+
+    mProgram = other.mProgram;
+
+    mVertexShader = other.mVertexShader;
+    mFragmentShader = other.mFragmentShader;
+
+    mPositionHandle = other.mPositionHandle;
+    mNormalHandle = other.mNormalHandle;
+
+    mSunPositionHandle = other.mSunPositionHandle;
+
+    mModelMatHandle = other.mModelMatHandle;
+    mViewMatHandle = other.mViewMatHandle;
+    mProjectionMatHandle = other.mProjectionMatHandle;
+
+    mSunLightStrengthHandle = other.mSunLightStrengthHandle;
+
+    mAmbientHandle = other.mAmbientHandle;
+    mDiffuseHandle = other.mDiffuseHandle;
+    mSpecularHandle = other.mSpecularHandle;
+    mShininessHandle = other.mShininessHandle;
+
+    other.vertices = nullptr;
+    other.normals = nullptr;
+    other.indices = nullptr;
+    memcpy(bufferIds, other.bufferIds, sizeof(bufferIds));
+    memcpy(modelMat, other.modelMat, sizeof(modelMat));
+    memcpy(ambient, other.ambient, sizeof(ambient));
+    memcpy(diffuse, other.diffuse, sizeof(diffuse));
+    memcpy(specular, other.specular, sizeof(specular));
+
+    return *this;
 }
 
 GLObject::~GLObject()

@@ -6,16 +6,15 @@
 #define MMDVIEWER_RENDERER_H
 
 #include "scenecamera.h"
-#include "objects/cube.h"
-#include "../mmd/pmx/pmxreader.h"
 #include "../mmd/vmd/vmdreader.h"
+#include "../mmd/pmx/pmxobject.h"
 
 class Renderer
 {
 private:
     int surfaceWidth, surfaceHeight;
     AbsCamera *camera;
-    PMXReader *pmx;
+    PMXObject *pmx;
     VMDReader *vmd;
     EnvironmentLight environmentLight;
 
@@ -47,7 +46,7 @@ public:
 
     void addVMDMotion(const char *path);
 
-    PMXReader *getModel() const;
+    PMXObject &getModel() const;
 
     /*if shadowMapSize is set to 0, shadow map will be disabled*/
     void setShadowMapSize(int size);

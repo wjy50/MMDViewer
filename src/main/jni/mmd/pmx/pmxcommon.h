@@ -6,8 +6,10 @@
 #define MMDVIEWER_PMXCOMMON_H
 
 #include <GLES3/gl3.h>
+#include <stdexcept>
 
-typedef struct PMX_INFO{
+typedef struct PMX_INFO
+{
     unsigned char encoding;
     unsigned char UVACount;
     unsigned char vertexSize;
@@ -16,7 +18,25 @@ typedef struct PMX_INFO{
     unsigned char boneSize;
     unsigned char morphSize;
     unsigned char bodySize;
-}PMXInfo;
+} PMXInfo;
+
+typedef enum PMX_ERROR
+{
+    UNSUPPORTED_PMX_VERSION = 0,
+    NOT_PMX_FILE
+} PMXError;
+
+class PMXException : public std::runtime_error
+{
+private:
+    PMXError error;
+public:
+    PMXException(PMXError error);
+
+    PMXError getError() const;
+
+    const char * what() const noexcept override;
+};
 
 #define IS_NEGATIVE_ONE(x, size) ((x) ^ (0xffffffff << ((size) * 8))) == 0xffffffff
 

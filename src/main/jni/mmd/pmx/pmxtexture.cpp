@@ -6,7 +6,7 @@
 #include "../../gl/texture/texture.h"
 #include "../../utils/debugutils.h"
 
-PMXTexture::PMXTexture() : path(nullptr), textureId(0), mHasAlpha(false)
+PMXTexture::PMXTexture() : path(), textureId(0), mHasAlpha(false)
 {}
 
 GLuint PMXTexture::getTextureId()
@@ -21,10 +21,10 @@ void PMXTexture::initGLTexture()
             TextureImage image(path);
             glGenTextures(1, &textureId);
             if (textureId == 0) {
-                LOG_PRINTF("gen texture failed, path = %s", path);
+                LOG_PRINTF("gen texture failed, path = %s", path.data());
                 return;
             }
-            LOG_PRINTF("%dx%d, path=%s", image.getWidth(), image.getHeight(), path);
+            LOG_PRINTF("%dx%d, path=%s", image.getWidth(), image.getHeight(), path.data());
             glBindTexture(GL_TEXTURE_2D, textureId);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -39,28 +39,24 @@ void PMXTexture::initGLTexture()
             glBindTexture(GL_TEXTURE_2D, 0);
             mHasAlpha = image.getColorType() == TEX_ARGB;
         } catch (const TextureLoadException &e) {
-            LOG_PRINTF("Gen texture failed, path = %s, due to %s", path, e.what());
+            LOG_PRINTF("Gen texture failed, path = %s, due to %s", path.data(), e.what());
         }
     }
 }
 
-void PMXTexture::read(std::ifstream &file, MStringEncoding encoding, const char *pmxPath, int pathLength)
+void PMXTexture::read(std::ifstream &file, MStringEncoding encoding, const std::string &parentPath)
 {
     MString textureName;
     textureName.readString(file, encoding, UTF_8);
     size_t l = textureName.length();
-    char *absPath = new char[l + pathLength + 1];
-    absPath[l + pathLength] = 0;
-    for (int i = 0; i < pathLength; ++i) {
-        absPath[i] = pmxPath[i];
-    }
+    std::string absPath(parentPath);
     for (size_t i = 0; i < l; ++i) {
         if (textureName[i] == '\\')
-            absPath[pathLength + i] = '/';
+            absPath.push_back('/');
         else
-            absPath[pathLength + i] = textureName[i];
+            absPath.push_back(textureName[i]);
     }
-    path = absPath;
+    path = move(absPath);
 }
 
 bool PMXTexture::hasAlpha()
@@ -70,7 +66,6 @@ bool PMXTexture::hasAlpha()
 
 PMXTexture::~PMXTexture()
 {
-    delete[] path;
     if (textureId != 0)
         glDeleteTextures(1, &textureId);
 }
