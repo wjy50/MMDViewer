@@ -34,6 +34,7 @@ Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeStopApplication(JN
 JNIEXPORT void JNICALL
 Java_com_wjy50_app_mmdviewer_gl_utils_NativeGLInterface_nativeOnTouchEvent(JNIEnv *env, jclass,
                                                                            jlong, jint action,
+                                                                           jint actionIndex,
                                                                            jfloat x, jfloat y);
 
 JNIEXPORT void JNICALL

@@ -15,12 +15,22 @@ protected:
     float distance;
     bool newTrans;
     float rx, rz;
+
+    float ax, ay, az;
+
+    float speedX, speedY, speedZ;
+    float curSpeedX, curSpeedY, curSpeedZ;
+    long lastTime;
 public:
     SceneCamera(float, float, float, float);
 
     void set(float, float, float, float);
 
     void translate(float, float, float);
+
+    void setMoveSpeed(float x, float y, float z);
+
+    void addMoveSpeed(float x, float y, float z);
 
     void rotate(float, float, float);
 

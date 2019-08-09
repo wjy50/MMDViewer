@@ -15,6 +15,4 @@ const float *AbsCamera::getProjectionMat() const
 }
 
 AbsCamera::~AbsCamera()
-{
-
-}
+{}

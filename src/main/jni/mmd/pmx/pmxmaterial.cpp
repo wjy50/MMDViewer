@@ -163,9 +163,7 @@ void PMXMaterial::setDiffuse(float r, float g, float b, float a)
 {
     if (!initialDiffuse) {
         initialDiffuse = new float[4];
-        for (int i = 0; i < 4; ++i) {
-            initialDiffuse[i] = diffuse[i];
-        }
+        memcpy(initialDiffuse, diffuse, 4 * sizeof(float));
     }
     diffuse[0] = r;
     diffuse[1] = g;
@@ -182,9 +180,7 @@ void PMXMaterial::setSpecular(float r, float g, float b, float s)
 {
     if (!initialSpecular) {
         initialSpecular = new float[4];
-        for (int i = 0; i < 4; ++i) {
-            initialSpecular[i] = specular[i];
-        }
+        memcpy(initialSpecular, specular, 4 * sizeof(float));
     }
     specular[0] = r;
     specular[1] = g;
@@ -201,9 +197,7 @@ void PMXMaterial::setAmbient(float r, float g, float b)
 {
     if (!initialAmbient) {
         initialAmbient = new float[3];
-        for (int i = 0; i < 3; ++i) {
-            initialAmbient[i] = ambient[i];
-        }
+        memcpy(initialAmbient, ambient, 3 * sizeof(float));
     }
     ambient[0] = r;
     ambient[1] = g;
@@ -219,9 +213,7 @@ void PMXMaterial::setEdgeColor(float r, float g, float b, float a)
 {
     if (!initialEdgeColor) {
         initialEdgeColor = new float[4];
-        for (int i = 0; i < 4; ++i) {
-            initialEdgeColor[i] = edgeColor[i];
-        }
+        memcpy(initialEdgeColor, edgeColor, 4 * sizeof(float));
     }
     edgeColor[0] = r;
     edgeColor[1] = g;

@@ -9,7 +9,7 @@
 
 void PMXObject::performMaterialAddOperation(int index, PMXMaterialMorphData &data, float f)
 {
-    PMXMaterial material = materials[index];
+    PMXMaterial &material = materials[index];
 
     const float *initialDiffuse = material.getInitialDiffuse();
     const float *diffuse = data.getDiffuse();
